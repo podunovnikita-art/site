@@ -1176,6 +1176,193 @@
       height:auto;
     }
 
+  
+    @media(max-width:560px){
+      body{overflow-x:hidden}
+      main,.configurator{overflow:visible!important}
+      .preview-panel{
+        position:sticky!important;
+        top:64px!important;
+        z-index:25;
+        align-self:stretch!important;
+      }
+      .control-section{scroll-margin-top:300px}
+    }
+
+  
+    .single-product-grid{
+      max-width:780px;margin:0 auto;grid-template-columns:1fr;
+    }
+    .unified-product-stage{
+      min-height:360px;display:flex;align-items:center;justify-content:center;
+      gap:28px;background:
+        radial-gradient(circle at 28% 30%,rgba(255,255,255,.82),transparent 26%),
+        linear-gradient(145deg,#ded3c7,#c7b8a7);
+    }
+    .unified-product-stage .mini-frame{
+      position:relative;inset:auto;transform:none;
+    }
+    .unified-plus{
+      width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+      background:rgba(255,255,255,.8);font-weight:900;font-size:22px;
+      box-shadow:0 7px 20px rgba(30,22,16,.12);
+    }
+    @media(max-width:560px){
+      .unified-product-stage{min-height:255px;gap:13px}
+      .unified-product-stage .mini-frame{transform:scale(.78)}
+      .unified-plus{width:30px;height:30px;font-size:17px}
+    }
+
+  
+    .type-choice-card{width:min(700px,94vw);padding:24px}
+    .type-choice-head{align-items:flex-start}
+    .type-choice-head p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .type-choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .type-choice-option{
+      border:1px solid var(--line);border-radius:22px;background:#f7f2ec;
+      padding:18px;cursor:pointer;text-align:left;transition:.2s ease;
+    }
+    .type-choice-option:hover{
+      transform:translateY(-2px);background:white;border-color:var(--ink);
+      box-shadow:0 12px 28px rgba(30,22,16,.09);
+    }
+    .type-choice-visual{
+      height:150px;border-radius:17px;background:#e8ded3;
+      display:grid;place-items:center;margin-bottom:14px;
+    }
+    .type-choice-frame{
+      width:92px;height:92px;background:#d56f4c;border-radius:24px;
+      display:grid;place-items:center;box-shadow:0 12px 22px rgba(30,22,16,.18);
+    }
+    .type-choice-switch{
+      width:48px;height:48px;background:#faf7f1;border-radius:13px;
+      box-shadow:inset 0 -4px 8px rgba(40,31,24,.08);
+    }
+    .type-choice-socket{
+      width:50px;height:50px;background:#faf7f1;border-radius:13px;position:relative;
+    }
+    .type-choice-socket:before,.type-choice-socket:after{
+      content:"";position:absolute;top:20px;width:6px;height:10px;
+      border-radius:4px;background:#8f8477;
+    }
+    .type-choice-socket:before{left:13px}.type-choice-socket:after{right:13px}
+    .type-choice-option strong{display:block;font-size:18px;margin-bottom:4px}
+    .type-choice-option small{color:var(--muted);font-size:12px}
+    @media(max-width:560px){
+      .type-choice-card{padding:16px}
+      .type-choice-grid{grid-template-columns:1fr;gap:9px}
+      .type-choice-option{
+        display:grid;grid-template-columns:92px 1fr;column-gap:12px;
+        align-items:center;padding:11px;
+      }
+      .type-choice-visual{
+        grid-row:1/3;width:92px;height:92px;margin:0;
+      }
+      .type-choice-frame{transform:scale(.72)}
+      .type-choice-option strong{align-self:end}
+      .type-choice-option small{align-self:start}
+    }
+
+  
+    .measure-modal-card{width:min(1040px,95vw);padding:25px}
+    .measure-modal-head{align-items:flex-start;margin-bottom:20px}
+    .measure-modal-head>div{max-width:680px}
+    .measure-modal-head p{margin:6px 0 0;color:var(--muted);line-height:1.45}
+    .measure-grid-current{grid-template-columns:repeat(3,1fr);align-items:stretch}
+    .measure-grid-current .measure-step{
+      position:relative;display:flex;flex-direction:column;height:100%;
+      padding:15px;
+    }
+    .measure-grid-current .measure-step h4{font-size:16px;margin:10px 0 6px}
+    .measure-grid-current .measure-step p{font-size:12px;line-height:1.45}
+    .measure-step-number{
+      position:absolute;top:25px;left:25px;width:29px;height:29px;
+      border-radius:50%;display:grid;place-items:center;
+      background:var(--ink);color:white;font-weight:900;font-size:11px;
+      box-shadow:0 4px 12px rgba(30,22,16,.15);
+    }
+    .measure-grid-current .measure-diagram{height:160px}
+    .measure-photo-visual{
+      height:160px;border-radius:16px;background:#eff4fb;
+      position:relative;overflow:hidden;display:grid;place-items:center;
+    }
+    .measure-photo-phone{
+      position:absolute;right:28px;width:55px;height:105px;border:6px solid #20201e;
+      border-radius:15px;background:rgba(255,255,255,.32);transform:rotate(-3deg);
+    }
+    .measure-photo-frame{
+      width:104px;height:78px;border:8px solid #cb6442;border-radius:18px;
+      background:#faf7f1;transform:translateX(-25px);
+    }
+    .measure-photo-visual span{
+      position:absolute;right:12px;bottom:11px;padding:5px 8px;border-radius:999px;
+      background:#4b7358;color:white;font-size:9px;font-weight:900;
+    }
+    .measure-footer-note{
+      margin-top:14px;padding:13px 15px;border-radius:15px;
+      background:#f1ece5;color:var(--muted);font-size:12px;line-height:1.45;
+      text-align:center;
+    }
+    .measure-footer-note strong{color:var(--ink)}
+    @media(max-width:760px){
+      .measure-modal-card{
+        width:100%;height:100dvh;max-height:100dvh;border-radius:0;
+        padding:15px;overflow-y:auto;
+      }
+      .measure-grid-current{grid-template-columns:1fr}
+      .measure-modal-head{position:sticky;top:-15px;z-index:4;background:white;padding:4px 0 10px}
+      .measure-modal-head h3{font-size:22px}
+      .measure-modal-head p{font-size:11px}
+      .measure-grid-current .measure-step{
+        display:grid;grid-template-columns:112px 1fr;column-gap:12px;
+        align-items:center;
+      }
+      .measure-grid-current .measure-diagram,.measure-photo-visual{
+        grid-row:1/4;width:112px;height:112px;
+      }
+      .measure-object{transform:scale(.72)}
+      .measure-line-h{transform:scale(.72)}
+      .measure-line-v{transform:scale(.72)}
+      .measure-step-number{top:20px;left:20px}
+      .measure-grid-current .measure-step h4{margin:0 0 4px}
+    }
+
+  
+    .radius-modal-body[data-active-stage="intro"],
+    .radius-modal-body[data-active-stage="desktop"]{
+      display:flex;align-items:center;justify-content:center;
+    }
+    .radius-stage[data-radius-stage="intro"]{
+      width:min(580px,100%);margin:auto;
+    }
+    .radius-instruction-card.active{
+      display:flex;flex-direction:column;justify-content:flex-start;
+    }
+    .desktop-radius-handoff{
+      width:min(760px,100%);display:flex;flex-direction:column;align-items:center;
+    }
+    .desktop-qr-layout{
+      width:100%;box-sizing:border-box;
+      grid-template-columns:200px minmax(0,1fr);
+    }
+    .desktop-qr-copy{min-width:0}
+    @media(max-width:760px){
+      .radius-modal-body[data-active-stage="intro"]{
+        align-items:center;justify-content:center;
+      }
+      .radius-stage[data-radius-stage="intro"]{
+        width:100%;margin:auto;
+      }
+      .radius-instruction-carousel{width:100%}
+      .radius-instruction-card{
+        width:100%;box-sizing:border-box;
+      }
+      .radius-instruction-card.active{
+        justify-content:center;
+      }
+      .instruction-nav{width:100%}
+    }
+
   </style>
 </head>
 <body>
@@ -1216,43 +1403,27 @@
 
       <section class="catalog-section" id="catalog">
         <div class="section-head">
-          <h2>С чего начнём?</h2>
-          <p>Выберите, для чего нужна рамка. Дальше вы настроите размер, форму, цвет и рельеф.</p>
+          <h2>Один конструктор для любой рамки</h2>
+          <p>Сначала выберите, что нужно обрамить — выключатель или розетку. Все остальные настройки находятся в одном редакторе.</p>
         </div>
 
-        <div class="product-grid">
-          <article class="product-card">
-            <div class="product-stage switch-stage">
+        <div class="product-grid single-product-grid">
+          <article class="product-card unified-product-card">
+            <div class="product-stage unified-product-stage">
               <div class="mini-frame"><div class="mini-device"></div></div>
-            </div>
-            <div class="product-info">
-              <div class="product-title-row">
-                <div>
-                  <h3>Рамка для выключателя</h3>
-                  <p>Подойдёт для одного выключателя или общего блока.</p>
-                </div>
-                <div class="price-from">от 690 ₽</div>
-              </div>
-              <div class="card-actions">
-                <button class="primary-btn full configure-product" data-type="switch">Настроить рамку</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="product-card">
-            <div class="product-stage socket-stage">
+              <div class="unified-plus">+</div>
               <div class="mini-frame socket-frame"><div class="mini-device socket"></div></div>
             </div>
             <div class="product-info">
               <div class="product-title-row">
                 <div>
-                  <h3>Рамка для розетки</h3>
-                  <p>Подойдёт для одной розетки или общего блока.</p>
+                  <h3>Кастомная декоративная рамка</h3>
+                  <p>Один конструктор для выключателей, розеток и общих блоков до двух элементов.</p>
                 </div>
                 <div class="price-from">от 690 ₽</div>
               </div>
               <div class="card-actions">
-                <button class="primary-btn full configure-product" data-type="socket">Настроить рамку</button>
+                <button class="primary-btn full configure-product" id="openUnifiedConfigurator">Создать рамку</button>
               </div>
             </div>
           </article>
@@ -1274,6 +1445,14 @@
 
       <div class="config-layout">
         <aside class="panel controls-panel">
+          <div class="control-section">
+            <h4>Что обрамляем</h4>
+            <div class="segmented" id="typeChoices">
+              <button class="choice active" data-frame-type="switch">Выключатель</button>
+              <button class="choice" data-frame-type="socket">Розетку</button>
+            </div>
+          </div>
+
           <div class="control-section">
             <div class="help-row">
               <h4>Размер существующей рамки</h4>
@@ -1471,48 +1650,82 @@
     </div>
   </aside>
 
+
+  <div class="modal" id="typeChoiceModal" role="dialog" aria-modal="true" aria-labelledby="typeChoiceTitle">
+    <div class="modal-card type-choice-card">
+      <div class="modal-head type-choice-head">
+        <div>
+          <h3 id="typeChoiceTitle">Что нужно обрамить?</h3>
+          <p>После выбора откроется единый редактор. Тип можно будет поменять и внутри.</p>
+        </div>
+        <button class="close-btn" id="closeTypeChoice" aria-label="Закрыть">×</button>
+      </div>
+      <div class="type-choice-grid">
+        <button class="type-choice-option" data-initial-type="switch">
+          <span class="type-choice-visual">
+            <span class="type-choice-frame"><span class="type-choice-switch"></span></span>
+          </span>
+          <strong>Выключатель</strong>
+          <small>Один выключатель или общий блок</small>
+        </button>
+        <button class="type-choice-option" data-initial-type="socket">
+          <span class="type-choice-visual">
+            <span class="type-choice-frame"><span class="type-choice-socket"></span></span>
+          </span>
+          <strong>Розетку</strong>
+          <small>Одна розетка или общий блок</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="measureModal" role="dialog" aria-modal="true" aria-labelledby="measureTitle">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="measureTitle">Как правильно измерить</h3>
+    <div class="modal-card measure-modal-card">
+      <div class="modal-head measure-modal-head">
+        <div>
+          <h3 id="measureTitle">Как снять размеры</h3>
+          <p>Нужны габариты всей видимой заводской рамки — снимать выключатель или розетку не требуется.</p>
+        </div>
         <button class="close-btn" id="closeMeasure">×</button>
       </div>
-      <div class="measure-grid">
-        <div class="measure-step">
+
+      <div class="measure-grid measure-grid-current">
+        <article class="measure-step">
           <div class="measure-diagram">
             <div class="measure-object"></div>
             <div class="measure-line-h"></div>
           </div>
-          <h4>1. Измерьте общую ширину</h4>
-          <p>От крайнего левого до крайнего правого края всей видимой заводской рамки.</p>
-        </div>
-        <div class="measure-step">
+          <span class="measure-step-number">1</span>
+          <h4>Измерьте общую ширину</h4>
+          <p>От самого левого до самого правого края внешней рамки. Для общего блока измеряйте весь блок целиком.</p>
+        </article>
+
+        <article class="measure-step">
           <div class="measure-diagram">
             <div class="measure-object"></div>
             <div class="measure-line-v"></div>
           </div>
-          <h4>2. Измерьте общую высоту</h4>
-          <p>От верхнего до нижнего края. Если элементов несколько, измеряйте весь блок целиком.</p>
-        </div>
-        <div class="measure-step">
-          <div class="measure-diagram" style="gap:14px;grid-auto-flow:column">
-            <span class="corner-choice-preview square"></span>
-            <span class="corner-choice-preview soft"></span>
-            <span class="corner-choice-preview round"></span>
+          <span class="measure-step-number">2</span>
+          <h4>Измерьте общую высоту</h4>
+          <p>От верхнего до нижнего внешнего края. Введите фактическое значение в миллиметрах.</p>
+        </article>
+
+        <article class="measure-step">
+          <div class="measure-photo-visual">
+            <div class="measure-photo-phone"></div>
+            <div class="measure-photo-frame"></div>
+            <span>автопоиск</span>
           </div>
-          <h4>3. Подберите внутренние углы</h4>
-          <p>Сравните угол вашей заводской рамки с превью: почти прямой, мягкий или сильно округлый. Точное число можно подправить ползунком.</p>
-          <div class="measure-corner-row"><span class="corner-choice-preview soft"></span>Смотрите именно на внешний угол существующей рамки.</div>
-        </div>
-        <div class="measure-step">
-          <div class="fit-diagram">
-            <div class="fit-outer"><div class="fit-gap"><div class="fit-existing"></div></div></div>
-          </div>
-          <h4>4. Ничего снимать не нужно</h4>
-          <p>Наша рамка располагается на стене вокруг существующей. Между ними автоматически добавляется небольшой зазор.</p>
-        </div>
+          <span class="measure-step-number">3</span>
+          <h4>Скругление — по фото или вручную</h4>
+          <p>На телефоне нажмите «Определить по фото»: сайт найдёт внешний контур, а вы проверите четыре точки. Ползунок остаётся запасным способом.</p>
+        </article>
       </div>
-      <div class="warning">Не измеряйте только клавишу или круглую часть розетки. Нужен внешний габарит всей видимой заводской рамки.</div>
+
+      <div class="measure-footer-note">
+        <strong>Посадочный зазор добавляется автоматически.</strong>
+        К ширине и высоте проёма прибавляется по 0,5 мм с каждой стороны.
+      </div>
     </div>
   </div>
 
@@ -1543,13 +1756,13 @@
           <div class="desktop-radius-handoff">
             <div class="desktop-radius-icon">▣</div>
             <h4>Измерьте скругление на телефоне</h4>
-            <p>Камера отключена в десктопной версии. Отсканируйте QR-код — на телефоне откроется эта же рамка с уже введёнными размерами.</p>
+            <p>На компьютере камера отключена. Отсканируйте QR-код — на телефоне откроется эта же конфигурация с введёнными размерами.</p>
 
             <div class="desktop-qr-layout">
               <div class="desktop-qr-box" id="desktopRadiusQr"></div>
               <div class="desktop-qr-copy">
                 <h5>Продолжить на телефоне</h5>
-                <p>После перехода сразу откроется короткая инструкция и камера. Фотография будет обработана локально на телефоне.</p>
+                <p>После перехода откроется короткая инструкция, затем камера и автоматический поиск внешней рамки.</p>
                 <div class="desktop-qr-local-warning" id="desktopQrLocalWarning" hidden>
                   QR-код заработает после публикации сайта по HTTPS. Локальный адрес файла нельзя открыть с другого устройства.
                 </div>
@@ -1573,8 +1786,8 @@
                 <div class="visual-axis"></div>
                 <div class="visual-phone"></div>
               </div>
-              <h4>Снимайте строго прямо</h4>
-              <p>Встаньте напротив рамки. Не фотографируйте сбоку, сверху или снизу.</p>
+              <h4>Покажите рамку целиком</h4>
+              <p>В кадре должны быть все четыре внешних угла и немного стены вокруг.</p>
             </article>
 
             <article class="radius-instruction-card" data-instruction-step="1">
@@ -1585,8 +1798,8 @@
                 <div class="visual-phone-side"></div>
                 <div class="parallel-ok">✓</div>
               </div>
-              <h4>Держите телефон ровно</h4>
-              <p>Телефон должен быть параллелен стене, а рамка — выглядеть прямоугольной.</p>
+              <h4>Держите телефон параллельно стене</h4>
+              <p>Не снимайте сбоку, сверху или снизу — так автоматический поиск будет точнее.</p>
             </article>
 
             <article class="radius-instruction-card" data-instruction-step="2">
@@ -1600,8 +1813,8 @@
                   <div class="visual-switch"></div>
                 </div>
               </div>
-              <h4>Совместите рамку с направляющей</h4>
-              <p>Направляющая повторяет введённые пропорции. Внешняя рамка должна целиком попасть внутрь неё.</p>
+              <h4>Поместите рамку внутрь направляющей</h4>
+              <p>Не нужно совмещать края идеально: сайт сам найдёт внешний контур после снимка.</p>
             </article>
 
             <div class="instruction-dots" id="radiusInstructionDots">
@@ -1806,6 +2019,7 @@
       $('frameDepthNumber').value = state.thickness;
       $('reliefHeightRange').value = state.reliefHeight;
       $('reliefHeightValue').textContent = `${Number(state.reliefHeight).toLocaleString('ru-RU')} мм`;
+      document.querySelectorAll('[data-frame-type]').forEach(b=>b.classList.toggle('active', b.dataset.frameType===state.type));
       document.querySelectorAll('[data-count]').forEach(b=>b.classList.toggle('active', Number(b.dataset.count)===state.count));
       document.querySelectorAll('[data-orientation]').forEach(b=>b.classList.toggle('active', b.dataset.orientation===state.orientation));
       document.querySelectorAll('[data-shape]').forEach(b=>b.classList.toggle('active', b.dataset.shape===state.shape));
@@ -4014,6 +4228,8 @@ ${v(c)}
       $('cartDrawer').classList.remove('open');
       $('drawerBackdrop').classList.remove('open');
     }
+    function openTypeChoice(){ $('typeChoiceModal').classList.add('open'); }
+    function closeTypeChoice(){ $('typeChoiceModal').classList.remove('open'); }
     function openMeasure(){ $('measureModal').classList.add('open'); }
     function closeMeasure(){ $('measureModal').classList.remove('open'); }
     function showToast(text){
@@ -4051,7 +4267,10 @@ ${v(c)}
       };
       $('radiusMeasureSubtitle').textContent=subtitles[name]||'';
       const body=$('radiusMeasureModal').querySelector('.radius-modal-body');
-      if(body) body.scrollTop=0;
+      if(body){
+        body.dataset.activeStage=name;
+        body.scrollTop=0;
+      }
     }
 
     function rawDimensionsAreValid(){
@@ -4972,10 +5191,26 @@ ${v(c)}
       if(event.target===$('radiusMeasureModal')) closeRadiusMeasure();
     });
 
-    document.querySelectorAll('.configure-product').forEach(btn=>btn.addEventListener('click',()=>openConfigurator(btn.dataset.type)));
+    document.querySelectorAll('.configure-product').forEach(btn=>btn.addEventListener('click',openTypeChoice));
+    document.querySelectorAll('[data-initial-type]').forEach(btn=>btn.onclick=()=>{
+      closeTypeChoice();
+      openConfigurator(btn.dataset.initialType);
+    });
+    $('closeTypeChoice').onclick=closeTypeChoice;
+    $('typeChoiceModal').addEventListener('click',event=>{
+      if(event.target===$('typeChoiceModal')) closeTypeChoice();
+    });
+    document.querySelectorAll('[data-frame-type]').forEach(btn=>btn.onclick=()=>{
+      const nextType=btn.dataset.frameType;
+      if(nextType===state.type) return;
+      state.type=nextType;
+      if(nextType==='socket') state.orientation='horizontal';
+      syncControls();
+      renderAll();
+    });
     $('backCatalog').onclick=backHome;
     $('brandHome').onclick=()=>{configView.classList.add('hidden');homeView.classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});}
-    $('goCatalog').onclick=()=>document.getElementById('catalog').scrollIntoView({behavior:'smooth'});
+    $('goCatalog').onclick=openTypeChoice;
     $('openCart').onclick=openCart;
     $('closeCart').onclick=closeCart;
     $('drawerBackdrop').onclick=closeCart;
@@ -5122,7 +5357,7 @@ ${v(c)}
     $('resetConfig').onclick=()=>{state={...defaults[state.type]};syncControls();renderAll();showToast('Настройки сброшены');};
 
     document.addEventListener('keydown',e=>{
-      if(e.key==='Escape'){closeCart();closeMeasure();closeRadiusMeasure();}
+      if(e.key==='Escape'){closeCart();closeTypeChoice();closeMeasure();closeRadiusMeasure();}
     });
 
     renderCart();
