@@ -301,6 +301,16 @@
         22% 8%,38% 14%
       );
     }
+
+    .shape-icon.liquid{
+      border-radius:42% 58% 63% 37% / 48% 36% 64% 52%;
+      transform:rotate(-9deg);
+      background:
+        radial-gradient(circle at 30% 25%,rgba(255,255,255,.8),transparent 27%),
+        linear-gradient(145deg,#e7ded2,#9e8d78 68%,#d2c4b4);
+      box-shadow:inset -5px -5px 8px rgba(68,54,43,.14);
+    }
+
     .shape-icon.capsule{border-radius:999px;width:40px;height:28px}
     .color-list{display:flex;gap:9px;flex-wrap:wrap}
     .color-dot{
@@ -1142,6 +1152,30 @@
       .radius-instruction-card{min-height:310px}
     }
 
+  
+    .radius-auto-status{
+      margin:11px 0 0;padding:9px 11px;border-radius:12px;
+      background:#eee8df;color:#5d554c;font-size:11px;
+      line-height:1.4;font-weight:800;
+    }
+    .radius-auto-status.success{background:#e8f1ea;color:#365541}
+    .radius-auto-status.warning{background:#fff0ea;color:#88462f}
+    .radius-auto-status.loading:before{
+      content:"";display:inline-block;width:9px;height:9px;margin-right:7px;
+      border:2px solid currentColor;border-right-color:transparent;
+      border-radius:50%;vertical-align:-1px;
+      animation:radiusSpin .8s linear infinite;
+    }
+    @keyframes radiusSpin{to{transform:rotate(360deg)}}
+
+    .camera-guide{
+      width:min(76vw,62vh);
+      max-width:88%;
+      max-height:72%;
+      aspect-ratio:1;
+      height:auto;
+    }
+
   </style>
 </head>
 <body>
@@ -1286,6 +1320,7 @@
             <div class="shape-grid" id="shapeChoices">
               <button class="shape-card active" data-shape="classic"><span class="shape-icon classic"></span>Классическая</button>
               <button class="shape-card" data-shape="flower"><span class="shape-icon flower"></span>Цветок</button>
+              <button class="shape-card" data-shape="liquid"><span class="shape-icon liquid"></span>Жидкий металл</button>
             </div>
           </div>
 
@@ -1565,8 +1600,8 @@
                   <div class="visual-switch"></div>
                 </div>
               </div>
-              <h4>Совместите рамку с квадратом</h4>
-              <p>Внешний край рамки должен целиком помещаться внутри квадрата. Не обрезайте ни один угол.</p>
+              <h4>Совместите рамку с направляющей</h4>
+              <p>Направляющая повторяет введённые пропорции. Внешняя рамка должна целиком попасть внутрь неё.</p>
             </article>
 
             <div class="instruction-dots" id="radiusInstructionDots">
@@ -1585,8 +1620,8 @@
         <section class="radius-stage" data-radius-stage="camera" hidden>
           <div class="camera-shell">
             <video id="radiusCameraVideo" autoplay playsinline muted></video>
-            <div class="camera-guide"></div>
-            <div class="camera-hint">Поместите всю заводскую рамку внутрь контура</div>
+            <div class="camera-guide" id="radiusCameraGuide"></div>
+            <div class="camera-hint">Совместите внешнюю рамку с направляющей</div>
             <div class="camera-error" id="radiusCameraError" hidden>
               <strong>Камера недоступна</strong>
               Откройте сайт по защищённой HTTPS-ссылке или выберите готовую фотографию ниже.
@@ -1605,12 +1640,16 @@
           <div class="radius-review-wrap">
             <canvas id="radiusReviewCanvas"></canvas>
           </div>
+          <div class="radius-auto-status" id="radiusAutoDetectStatus">
+            Ищем внешнюю рамку на фотографии…
+          </div>
           <p class="radius-review-help">
-            <strong>Совместите квадрат с внешними границами рамки.</strong>
-            Передвиньте четыре точки туда, где пересеклись бы прямые продолжения её сторон.
+            <strong>Проверьте найденный контур.</strong>
+            Сайт ставит точки автоматически. Передвиньте их только если линия не совпала с внешним краем рамки.
           </p>
           <div class="radius-modal-actions">
             <button class="secondary-btn" id="retakeRadiusPhoto">Переснять</button>
+            <button class="secondary-btn" id="redetectRadiusFrame">Найти рамку заново</button>
             <button class="primary-btn accent" id="analyzeRadiusPhoto">Измерить скругление</button>
           </div>
         </section>
@@ -1659,7 +1698,8 @@
     };
     const shapeNames = {
       classic: 'Классическая',
-      flower: 'Цветок'
+      flower: 'Цветок',
+      liquid: 'Жидкий металл'
     };
     const surfaceModeNames = { plain:'Однотонная', relief:'Рельефная', pattern:'С узором' };
     const reliefStyleNames = { waves:'Морские волны', pillow:'Надутая' };
@@ -2774,10 +2814,64 @@
       return points;
     }
 
+    function liquidRaw(width,height,radius,count=520){
+      const amplitude=Math.min(width,height)*.075;
+      const baseWidth=Math.max(10,width-amplitude*2.15);
+      const baseHeight=Math.max(10,height-amplitude*2.15);
+      const baseRadius=Math.max(
+        1,
+        Math.min(Number(radius)||0,baseWidth/2,baseHeight/2)
+      );
+      const base=resampleClosed(
+        roundedRectRaw(baseWidth,baseHeight,baseRadius,70),
+        count
+      );
+      const points=[];
+
+      for(let i=0;i<count;i++){
+        const prev=base[(i-1+count)%count];
+        const next=base[(i+1)%count];
+        const dx=next[0]-prev[0];
+        const dy=next[1]-prev[1];
+        const len=Math.hypot(dx,dy)||1;
+        const nx=dy/len;
+        const ny=-dx/len;
+        const phase=(i/count)*Math.PI*2;
+
+        const wave=
+          .56+
+          .21*Math.sin(phase*3+.42)+
+          .15*Math.cos(phase*5-1.08)+
+          .08*Math.sin(phase*7+1.74);
+        const bulge=amplitude*clamp(wave,.12,1);
+        points.push([
+          base[i][0]+nx*bulge,
+          base[i][1]+ny*bulge
+        ]);
+      }
+
+      // Normalize the deterministic organic contour to the exact requested
+      // outer dimensions so preview, limits and 3MF remain consistent.
+      const xs=points.map(point=>point[0]);
+      const ys=points.map(point=>point[1]);
+      const minX=Math.min(...xs),maxX=Math.max(...xs);
+      const minY=Math.min(...ys),maxY=Math.max(...ys);
+      const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+      const scaleX=width/Math.max(.001,maxX-minX);
+      const scaleY=height/Math.max(.001,maxY-minY);
+
+      return points.map(point=>[
+        (point[0]-cx)*scaleX,
+        (point[1]-cy)*scaleY
+      ]);
+    }
+
     function contourForShape(shape,width,height,radius,count=160){
       let raw;
       if(shape==='flower'){
         raw=flowerRaw(width,height,radius,12,Math.max(count,480));
+      }else if(shape==='liquid'){
+        raw=liquidRaw(width,height,radius,Math.max(count,520));
       }else if(shape==='arch'){
         raw=archRaw(width,height);
       }else{
@@ -3939,7 +4033,8 @@ ${v(c)}
       rectifiedCanvas:document.createElement('canvas'),
       cornerValues:[],
       measuredRadius:0,
-      confidence:0
+      confidence:0,
+      frameDetectionConfidence:0
     };
 
     function setRadiusMeasureStage(name){
@@ -4039,6 +4134,7 @@ ${v(c)}
       markDimensionInputsAttention(false);
       radiusPhotoState.widthMm=dimensions.width;
       radiusPhotoState.heightMm=dimensions.height;
+      updateRadiusCameraGuide();
 
       if(isPhoneMeasurementLayout()){
         setRadiusMeasureStage('intro');
@@ -4082,6 +4178,48 @@ ${v(c)}
       clearRadiusPhotoMemory();
     }
 
+
+    function updateRadiusCameraGuide(){
+      const guide=$('radiusCameraGuide');
+      if(!guide) return;
+      const width=Math.max(1,Number(radiusPhotoState.widthMm)||1);
+      const height=Math.max(1,Number(radiusPhotoState.heightMm)||1);
+      const ratio=width/height;
+      guide.style.aspectRatio=`${width} / ${height}`;
+
+      if(ratio>=1){
+        guide.style.width='min(78vw, 62vh)';
+        guide.style.height='auto';
+      }else{
+        guide.style.height='min(58vh, 78vw)';
+        guide.style.width='auto';
+      }
+    }
+
+    function centeredAspectReviewPoints(width,height){
+      const ratio=Math.max(.12,Math.min(8,
+        Number(radiusPhotoState.widthMm)/Math.max(1,Number(radiusPhotoState.heightMm))
+      ));
+      const availableWidth=width*.72;
+      const availableHeight=height*.72;
+      let boxWidth=availableWidth;
+      let boxHeight=boxWidth/ratio;
+
+      if(boxHeight>availableHeight){
+        boxHeight=availableHeight;
+        boxWidth=boxHeight*ratio;
+      }
+
+      const left=(width-boxWidth)/2;
+      const top=(height-boxHeight)/2;
+      return [
+        {x:left,y:top},
+        {x:left+boxWidth,y:top},
+        {x:left+boxWidth,y:top+boxHeight},
+        {x:left,y:top+boxHeight}
+      ];
+    }
+
     async function startRadiusCamera(){
       if(!isPhoneMeasurementLayout()){
         setRadiusMeasureStage('desktop');
@@ -4089,6 +4227,7 @@ ${v(c)}
         return;
       }
       setRadiusMeasureStage('camera');
+      updateRadiusCameraGuide();
       $('radiusCameraError').hidden=true;
       $('radiusCameraVideo').hidden=false;
       $('captureRadiusPhoto').disabled=false;
@@ -4132,18 +4271,15 @@ ${v(c)}
       ctx.clearRect(0,0,width,height);
       ctx.drawImage(drawable,0,0,width,height);
       radiusPhotoState.sourceReady=true;
-      const squareSize=Math.min(width,height)*.70;
-      const left=(width-squareSize)/2;
-      const top=(height-squareSize)/2;
-      radiusPhotoState.reviewPoints=[
-        {x:left,y:top},
-        {x:left+squareSize,y:top},
-        {x:left+squareSize,y:top+squareSize},
-        {x:left,y:top+squareSize}
-      ];
+      radiusPhotoState.reviewPoints=centeredAspectReviewPoints(width,height);
       stopRadiusCamera();
       setRadiusMeasureStage('review');
-      requestAnimationFrame(drawRadiusReview);
+      $('radiusAutoDetectStatus').className='radius-auto-status loading';
+      $('radiusAutoDetectStatus').textContent='Ищем внешнюю рамку на фотографии…';
+      requestAnimationFrame(()=>{
+        drawRadiusReview();
+        setTimeout(autoDetectRadiusFrame,30);
+      });
     }
 
     function captureRadiusPhoto(){
@@ -4168,6 +4304,229 @@ ${v(c)}
         showToast('Не удалось открыть фотографию');
       };
       image.src=url;
+    }
+
+
+    function buildDetectionImage(source,maxSide=760){
+      const scale=Math.min(1,maxSide/Math.max(source.width,source.height));
+      const width=Math.max(80,Math.round(source.width*scale));
+      const height=Math.max(80,Math.round(source.height*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=width;
+      canvas.height=height;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      ctx.drawImage(source,0,0,width,height);
+      return {
+        canvas,
+        imageData:ctx.getImageData(0,0,width,height),
+        scaleX:source.width/width,
+        scaleY:source.height/height
+      };
+    }
+
+    function detectFrameRectangle(sourceCanvas){
+      const prepared=buildDetectionImage(sourceCanvas);
+      const {imageData,scaleX,scaleY}=prepared;
+      const {width,height,data}=imageData;
+      const pixelCount=width*height;
+      const gray=new Float32Array(pixelCount);
+      const smooth=new Float32Array(pixelCount);
+      const gx=new Float32Array(pixelCount);
+      const gy=new Float32Array(pixelCount);
+
+      for(let i=0,p=0;i<data.length;i+=4,p++){
+        gray[p]=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
+      }
+
+      for(let y=1;y<height-1;y++){
+        for(let x=1;x<width-1;x++){
+          const index=y*width+x;
+          smooth[index]=(
+            gray[index]*4+
+            gray[index-1]+gray[index+1]+
+            gray[index-width]+gray[index+width]
+          )/8;
+        }
+      }
+
+      let gradientTotal=0;
+      let gradientCount=0;
+      for(let y=2;y<height-2;y++){
+        for(let x=2;x<width-2;x++){
+          const index=y*width+x;
+          gx[index]=Math.abs(smooth[index+1]-smooth[index-1]);
+          gy[index]=Math.abs(smooth[index+width]-smooth[index-width]);
+          gradientTotal+=gx[index]+gy[index];
+          gradientCount+=2;
+        }
+      }
+      const gradientBaseline=gradientTotal/Math.max(1,gradientCount);
+
+      const verticalPrefix=new Float32Array(width*(height+1));
+      for(let x=0;x<width;x++){
+        let sum=0;
+        for(let y=0;y<height;y++){
+          sum+=gx[y*width+x];
+          verticalPrefix[x*(height+1)+y+1]=sum;
+        }
+      }
+
+      const horizontalPrefix=new Float32Array(height*(width+1));
+      for(let y=0;y<height;y++){
+        let sum=0;
+        for(let x=0;x<width;x++){
+          sum+=gy[y*width+x];
+          horizontalPrefix[y*(width+1)+x+1]=sum;
+        }
+      }
+
+      const verticalBand=(x,y0,y1)=>{
+        const from=Math.max(0,Math.round(y0));
+        const to=Math.min(height,Math.round(y1));
+        if(to<=from) return 0;
+        let total=0,count=0;
+        for(let offset=-2;offset<=2;offset++){
+          const column=clamp(Math.round(x+offset),0,width-1);
+          total+=verticalPrefix[column*(height+1)+to]-
+            verticalPrefix[column*(height+1)+from];
+          count++;
+        }
+        return total/Math.max(1,(to-from)*count);
+      };
+
+      const horizontalBand=(y,x0,x1)=>{
+        const from=Math.max(0,Math.round(x0));
+        const to=Math.min(width,Math.round(x1));
+        if(to<=from) return 0;
+        let total=0,count=0;
+        for(let offset=-2;offset<=2;offset++){
+          const row=clamp(Math.round(y+offset),0,height-1);
+          total+=horizontalPrefix[row*(width+1)+to]-
+            horizontalPrefix[row*(width+1)+from];
+          count++;
+        }
+        return total/Math.max(1,(to-from)*count);
+      };
+
+      const expectedRatio=clamp(
+        Number(radiusPhotoState.widthMm)/
+          Math.max(1,Number(radiusPhotoState.heightMm)),
+        .15,
+        6.5
+      );
+
+      const maxCandidateWidth=Math.min(width*.88,height*.88*expectedRatio);
+      const minCandidateWidth=Math.max(width*.25,height*.25*expectedRatio);
+      const centerStep=Math.max(5,Math.round(Math.min(width,height)/95));
+      const sizeStep=Math.max(4,Math.round(Math.min(width,height)/110));
+      let best=null;
+
+      for(let candidateWidth=minCandidateWidth;
+          candidateWidth<=maxCandidateWidth;
+          candidateWidth+=sizeStep){
+        const candidateHeight=candidateWidth/expectedRatio;
+        if(candidateHeight<height*.22 || candidateHeight>height*.9) continue;
+
+        const minCx=Math.max(candidateWidth/2+5,width*.34);
+        const maxCx=Math.min(width-candidateWidth/2-5,width*.66);
+        const minCy=Math.max(candidateHeight/2+5,height*.34);
+        const maxCy=Math.min(height-candidateHeight/2-5,height*.66);
+
+        for(let cy=minCy;cy<=maxCy;cy+=centerStep){
+          for(let cx=minCx;cx<=maxCx;cx+=centerStep){
+            const left=cx-candidateWidth/2;
+            const right=cx+candidateWidth/2;
+            const top=cy-candidateHeight/2;
+            const bottom=cy+candidateHeight/2;
+            const insetX=candidateWidth*.17;
+            const insetY=candidateHeight*.17;
+
+            const sides=[
+              verticalBand(left,top+insetY,bottom-insetY),
+              verticalBand(right,top+insetY,bottom-insetY),
+              horizontalBand(top,left+insetX,right-insetX),
+              horizontalBand(bottom,left+insetX,right-insetX)
+            ];
+
+            const mean=sides.reduce((sum,value)=>sum+value,0)/4;
+            const minimum=Math.min(...sides);
+            const balance=minimum/Math.max(.001,mean);
+            const areaRatio=(candidateWidth*candidateHeight)/(width*height);
+            const centerDistance=Math.hypot(
+              (cx-width/2)/width,
+              (cy-height/2)/height
+            );
+            const score=
+              mean*
+              (.52+.48*clamp(balance,0,1))*
+              (.88+.38*Math.sqrt(areaRatio))*
+              (1-.72*centerDistance);
+
+            if(!best || score>best.score){
+              best={
+                score,mean,balance,left,right,top,bottom,
+                candidateWidth,candidateHeight
+              };
+            }
+          }
+        }
+      }
+
+      if(!best) return null;
+
+      const contrast=best.mean/Math.max(1,gradientBaseline);
+      const confidence=clamp(
+        ((contrast-1.15)/4.8)*.64+
+        clamp(best.balance,0,1)*.36,
+        0,
+        1
+      );
+
+      return {
+        points:[
+          {x:best.left*scaleX,y:best.top*scaleY},
+          {x:best.right*scaleX,y:best.top*scaleY},
+          {x:best.right*scaleX,y:best.bottom*scaleY},
+          {x:best.left*scaleX,y:best.bottom*scaleY}
+        ],
+        confidence
+      };
+    }
+
+    function autoDetectRadiusFrame(){
+      if(!radiusPhotoState.sourceReady) return;
+      const status=$('radiusAutoDetectStatus');
+      status.className='radius-auto-status loading';
+      status.textContent='Ищем внешнюю рамку на фотографии…';
+
+      try{
+        const detection=detectFrameRectangle(radiusPhotoState.sourceCanvas);
+        if(detection){
+          radiusPhotoState.reviewPoints=detection.points;
+          radiusPhotoState.frameDetectionConfidence=detection.confidence;
+          drawRadiusReview();
+
+          if(detection.confidence>=.52){
+            status.className='radius-auto-status success';
+            status.textContent='Внешняя рамка найдена автоматически. Проверьте совпадение линии.';
+          }else{
+            status.className='radius-auto-status warning';
+            status.textContent='Контур найден приблизительно. Перед измерением поправьте точки.';
+          }
+        }else{
+          radiusPhotoState.reviewPoints=centeredAspectReviewPoints(
+            radiusPhotoState.sourceCanvas.width,
+            radiusPhotoState.sourceCanvas.height
+          );
+          drawRadiusReview();
+          status.className='radius-auto-status warning';
+          status.textContent='Не удалось уверенно найти рамку. Выставьте четыре точки вручную.';
+        }
+      }catch(error){
+        console.error('Frame auto-detection failed',error);
+        status.className='radius-auto-status warning';
+        status.textContent='Автопоиск не сработал. Выставьте четыре точки вручную.';
+      }
     }
 
     function drawRadiusReview(){
@@ -4337,6 +4696,14 @@ ${v(c)}
       return result;
     }
 
+
+    function cornerCoordinate(corner,x,y,width,height){
+      if(corner===0) return {x,y};
+      if(corner===1) return {x:width-1-x,y};
+      if(corner===2) return {x:width-1-x,y:height-1-y};
+      return {x,y:height-1-y};
+    }
+
     function averageRayColor(imageData,corner,angle,t,perpendicularRadius=2){
       const cos=Math.cos(angle),sin=Math.sin(angle);
       const px=-sin,py=cos;
@@ -4433,6 +4800,12 @@ ${v(c)}
     }
 
     function analyzeRadiusPhoto(){
+      const button=$('analyzeRadiusPhoto');
+      const originalText=button.textContent;
+      button.disabled=true;
+      button.textContent='Измеряем…';
+
+      try{
       const imageData=rectifyRadiusPhoto();
       const estimates=[0,1,2,3].map(corner=>estimateCornerRadius(imageData,corner));
 
@@ -4464,6 +4837,18 @@ ${v(c)}
       updateRadiusResultTexts();
       setRadiusMeasureStage('result');
       requestAnimationFrame(drawRadiusResult);
+      }catch(error){
+        console.error('Radius analysis failed',error);
+        const status=$('radiusAutoDetectStatus');
+        if(status){
+          status.className='radius-auto-status warning';
+          status.textContent='Не удалось рассчитать скругление. Поправьте точки и повторите.';
+        }
+        showToast('Не удалось измерить скругление');
+      }finally{
+        button.disabled=false;
+        button.textContent=originalText;
+      }
     }
 
     function updateRadiusResultTexts(){
@@ -4568,6 +4953,7 @@ ${v(c)}
     $('chooseRadiusPhoto').onclick=()=>$('radiusPhotoInput').click();
     $('radiusPhotoInput').onchange=event=>loadRadiusPhotoFile(event.target.files?.[0]);
     $('retakeRadiusPhoto').onclick=startRadiusCamera;
+    $('redetectRadiusFrame').onclick=autoDetectRadiusFrame;
     $('analyzeRadiusPhoto').onclick=analyzeRadiusPhoto;
     $('backToRadiusReview').onclick=()=>{setRadiusMeasureStage('review');requestAnimationFrame(drawRadiusReview);};
     $('applyMeasuredRadius').onclick=applyMeasuredRadius;
