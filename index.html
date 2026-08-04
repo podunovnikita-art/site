@@ -1460,6 +1460,24 @@
       }
     }
 
+  
+    .radius-review-actions{
+      display:grid;
+      grid-template-columns:minmax(120px,.7fr) minmax(180px,1.3fr);
+      gap:10px;
+    }
+    .radius-review-actions button{width:100%}
+    @media(max-width:560px){
+      .radius-review-actions{
+        grid-template-columns:.72fr 1.28fr;
+      }
+      .radius-review-actions button{
+        min-width:0;
+        padding-left:10px;
+        padding-right:10px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1957,9 +1975,8 @@
             <strong>Проверьте найденный контур.</strong>
             Сайт ставит точки автоматически. Передвиньте их только если линия не совпала с внешним краем рамки.
           </p>
-          <div class="radius-modal-actions">
+          <div class="radius-modal-actions radius-review-actions">
             <button class="secondary-btn" id="retakeRadiusPhoto">Переснять</button>
-            <button class="secondary-btn" id="redetectRadiusFrame">Найти рамку заново</button>
             <button class="primary-btn accent" id="analyzeRadiusPhoto">Измерить скругление</button>
           </div>
         </section>
@@ -5269,7 +5286,6 @@ ${v(c)}
     $('chooseRadiusPhoto').onclick=()=>$('radiusPhotoInput').click();
     $('radiusPhotoInput').onchange=event=>loadRadiusPhotoFile(event.target.files?.[0]);
     $('retakeRadiusPhoto').onclick=startRadiusCamera;
-    $('redetectRadiusFrame').onclick=autoDetectRadiusFrame;
     $('analyzeRadiusPhoto').onclick=analyzeRadiusPhoto;
     $('backToRadiusReview').onclick=()=>{setRadiusMeasureStage('review');requestAnimationFrame(drawRadiusReview);};
     $('applyMeasuredRadius').onclick=applyMeasuredRadius;
