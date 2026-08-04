@@ -314,12 +314,12 @@
 
 .shape-icon.splat{
   clip-path:polygon(
-    12% 6%, 23% 15%, 34% 5%, 45% 16%, 60% 2%, 72% 15%, 91% 11%,
-    83% 28%, 97% 40%, 82% 51%, 96% 66%, 80% 74%, 87% 93%,
-    69% 84%, 58% 98%, 46% 83%, 33% 95%, 24% 80%, 7% 87%,
-    18% 68%, 3% 58%, 16% 47%, 4% 31%, 20% 24%
+    10% 19%, 18% 8%, 32% 12%, 45% 3%, 59% 10%, 76% 7%, 88% 18%,
+    94% 33%, 86% 46%, 98% 59%, 87% 73%, 90% 87%, 72% 89%,
+    60% 98%, 47% 89%, 33% 95%, 21% 84%, 9% 74%, 13% 57%,
+    2% 43%, 11% 29%
   );
-  border-radius:16px;
+  border-radius:20px;
 }
 .shape-icon.bloom{
   clip-path:polygon(
@@ -1722,9 +1722,7 @@
             <div class="shape-grid" id="shapeChoices">
               <button class="shape-card active" data-shape="classic"><span class="shape-icon classic"></span>Классическая</button>
               <button class="shape-card" data-shape="flower"><span class="shape-icon flower"></span>Цветок</button>
-              <button class="shape-card" data-shape="bloom"><span class="shape-icon bloom"></span>Цветочек</button>
               <button class="shape-card" data-shape="splat"><span class="shape-icon splat"></span>Клякса</button>
-              <button class="shape-card" data-shape="liquid"><span class="shape-icon liquid"></span>Жидкий металл</button>
               <button class="shape-card" data-shape="puzzle"><span class="shape-icon puzzle"></span>Пазл</button>
               <button class="shape-card" data-shape="sunburst"><span class="shape-icon sunburst"></span>Зубчатая</button>
             </div>
@@ -1773,8 +1771,7 @@
             <div class="surface-option-wrap hidden" id="reliefOptionsWrap">
               <h4 style="margin-bottom:10px">Форма рельефа</h4>
               <div class="surface-text-grid" id="reliefStyleChoices">
-                <button class="surface-text-card active" data-relief-style="waves">Морские волны<small>Ровные симметричные волны</small></button>
-                <button class="surface-text-card" data-relief-style="pillow">Надутая<small>Мягкая выпуклая поверхность</small></button>
+                <button class="surface-text-card active" data-relief-style="pillow">Надутая<small>Мягкая выпуклая поверхность</small></button>
               </div>
             </div>
 
@@ -2142,7 +2139,7 @@
       liquid: 'Жидкий металл'
     };
     const surfaceModeNames = { plain:'Однотонная', relief:'Рельефная', pattern:'С узором' };
-    const reliefStyleNames = { waves:'Морские волны', pillow:'Надутая' };
+    const reliefStyleNames = { pillow:'Надутая' };
     const flatPatternNames = { ring:'Контур', checker:'Шахматка', bands:'Прямые полосы', groovy:'Цветочный' };
     const profileNames = {
       thin: 'Тонкая',
@@ -2152,8 +2149,8 @@
     const clearancePerSide = 0.5;
 
     const defaults = {
-      switch: { type:'switch', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'waves', flatPattern:'ring', reliefHeight:6, color:'#FFD400', colorName:'Жёлтый', secondaryColor:'#145BFF', secondaryColorName:'Синий', mode:'front' },
-      socket: { type:'socket', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'waves', flatPattern:'ring', reliefHeight:6, color:'#145BFF', colorName:'Синий', secondaryColor:'#FFD400', secondaryColorName:'Жёлтый', mode:'front' }
+      switch: { type:'switch', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:6, color:'#FFD400', colorName:'Жёлтый', secondaryColor:'#145BFF', secondaryColorName:'Синий', mode:'front' },
+      socket: { type:'socket', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:6, color:'#145BFF', colorName:'Синий', secondaryColor:'#FFD400', secondaryColorName:'Жёлтый', mode:'front' }
     };
     let state = {...defaults.switch};
 
@@ -3433,14 +3430,14 @@ function wrapPhaseDistance(a,b){
 }
 
 function splatRaw(width,height,radius,count=560){
-  const amplitude=Math.min(width,height)*.135;
-  const baseWidth=Math.max(10,width-amplitude*2.35);
-  const baseHeight=Math.max(10,height-amplitude*2.35);
-  const baseRadius=Math.max(2,Math.min((Number(radius)||0)+4,baseWidth/2,baseHeight/2));
-  const base=resampleClosed(roundedRectRaw(baseWidth,baseHeight,baseRadius,72),count);
-  const lobeCenters=[.02,.10,.18,.29,.39,.50,.60,.71,.81,.90,.97];
-  const lobeWeights=[1.0,.55,.86,.48,.82,.62,.95,.52,.88,.58,.74];
-  const sigma=.030;
+  const amplitude=Math.min(width,height)*.128;
+  const baseWidth=Math.max(10,width-amplitude*2.28);
+  const baseHeight=Math.max(10,height-amplitude*2.28);
+  const baseRadius=Math.max(6,Math.min((Number(radius)||0)+8,baseWidth/2,baseHeight/2));
+  const base=resampleClosed(roundedRectRaw(baseWidth,baseHeight,baseRadius,88),count);
+  const lobeCenters=[.06,.17,.31,.46,.61,.76,.90];
+  const lobeWeights=[.74,.60,.88,.58,.84,.66,.76];
+  const sigma=.052;
   const points=[];
   for(let i=0;i<count;i++){
     const prev=base[(i-1+count)%count];
@@ -3449,12 +3446,12 @@ function splatRaw(width,height,radius,count=560){
     const len=Math.hypot(dx,dy)||1;
     const nx=dy/len,ny=-dx/len;
     const u=i/count;
-    let lobe=.12+.05*Math.sin(u*Math.PI*8+.35);
+    let lobe=.16 + .04*Math.sin(u*Math.PI*2-0.25) + .025*Math.cos(u*Math.PI*4+0.4);
     for(let k=0;k<lobeCenters.length;k++){
       const d=wrapPhaseDistance(u,lobeCenters[k]);
       lobe+=lobeWeights[k]*Math.exp(-(d*d)/(2*sigma*sigma));
     }
-    const bulge=amplitude*clamp(lobe,.08,1.18);
+    const bulge=amplitude*clamp(lobe,.12,1.06);
     points.push([base[i][0]+nx*bulge,base[i][1]+ny*bulge]);
   }
   return normalizeContour(points,width,height);
@@ -3491,32 +3488,39 @@ function appendArc(points,cx,cy,r,start,end,steps=8){
 }
 
 function puzzleRaw(width,height,radius){
-  const w=width, h=height;
-  const hw=w/2, hh=h/2;
-  const r=Math.max(2,Math.min(Number(radius)||8,Math.min(w,h)*.12));
-  const tab=Math.min(w,h)*.145;
-  const neck=Math.min(w,h)*.095;
-  const inset=Math.min(w,h)*.10;
+  const tab=Math.min(width,height)*.17;
+  const neck=tab*.58;
+  const bodyW=Math.max(12,width-tab*1.86);
+  const bodyH=Math.max(12,height-tab*1.86);
+  const hw=bodyW/2, hh=bodyH/2;
+  const bodyR=Math.max(6,Math.min((Number(radius)||0)+6,Math.min(bodyW,bodyH)*.16));
   const pts=[];
 
-  // Start on top edge after top-left corner.
-  pts.push([-hw+r,-hh]);
+  // Top side with outward tab.
+  pts.push([-hw+bodyR,-hh]);
   pts.push([-neck,-hh]);
-  appendArc(pts,0,-hh,tab,Math.PI,0,12); // top outward tab
-  pts.push([hw-r,-hh]);
-  appendArc(pts,hw-r,-hh+r,r,-Math.PI/2,0,8); // top-right corner
+  appendArc(pts,0,-hh,tab,Math.PI,0,18);
+  pts.push([hw-bodyR,-hh]);
+  appendArc(pts,hw-bodyR,-hh+bodyR,bodyR,-Math.PI/2,0,10);
+
+  // Right side with outward tab.
   pts.push([hw,-neck]);
-  appendArc(pts,hw,0,tab,-Math.PI/2,Math.PI/2,12); // right outward tab
-  pts.push([hw,hh-r]);
-  appendArc(pts,hw-r,hh-r,r,0,Math.PI/2,8); // bottom-right corner
+  appendArc(pts,hw,0,tab,-Math.PI/2,Math.PI/2,18);
+  pts.push([hw,hh-bodyR]);
+  appendArc(pts,hw-bodyR,hh-bodyR,bodyR,0,Math.PI/2,10);
+
+  // Bottom side with outward tab.
   pts.push([neck,hh]);
-  appendArc(pts,0,hh,inset,0,Math.PI,12); // bottom inward socket
-  pts.push([-hw+r,hh]);
-  appendArc(pts,-hw+r,hh-r,r,Math.PI/2,Math.PI,8); // bottom-left corner
+  appendArc(pts,0,hh,tab,0,Math.PI,18);
+  pts.push([-hw+bodyR,hh]);
+  appendArc(pts,-hw+bodyR,hh-bodyR,bodyR,Math.PI/2,Math.PI,10);
+
+  // Left side with outward tab.
   pts.push([-hw,neck]);
-  appendArc(pts,-hw,0,inset,Math.PI/2,-Math.PI/2,12); // left inward socket
-  pts.push([-hw,-hh+r]);
-  appendArc(pts,-hw+r,-hh+r,r,Math.PI,Math.PI*1.5,8); // top-left corner
+  appendArc(pts,-hw,0,tab,Math.PI/2,-Math.PI/2,18);
+  pts.push([-hw,-hh+bodyR]);
+  appendArc(pts,-hw+bodyR,-hh+bodyR,bodyR,Math.PI,Math.PI*1.5,10);
+
   return normalizeContour(pts,width,height);
 }
 
@@ -3903,7 +3907,7 @@ function groovyPatternField(x,y,data){
     field=Math.min(field,ellipse);
   }
   // Slight deterministic wobble keeps the lines lively without becoming noisy.
-  field += .045*Math.sin((nx*4.4-ny*2.8)*Math.PI) + .028*Math.cos((nx*2.1+ny*3.6)*Math.PI);
+  field += .016*Math.sin((nx*3.2-ny*2.1)*Math.PI) + .010*Math.cos((nx*1.7+ny*2.8)*Math.PI);
   return field;
 }
 
@@ -3951,8 +3955,8 @@ function groovyPatternField(x,y,data){
       }
 
       if(state.flatPattern==='groovy'){
-        const pitch=.24;
-        const width=.112;
+        const pitch=.285;
+        const width=.142;
         const field=groovyPatternField(x,y,data);
         const phase=((field/pitch)%1+1)%1;
         return phase<width/pitch ? 1 : 0;
@@ -4042,8 +4046,8 @@ function groovyPatternField(x,y,data){
           uSet.add(round(c/cols));
         }
       }else if(state.flatPattern==='groovy'){
-        const rows=Math.max(14,Math.min(28,Math.round(usableW/3.4)));
-        const cols=Math.max(96,Math.min(180,Math.round(data._midPerimeter/6.2)));
+        const rows=Math.max(18,Math.min(34,Math.round(usableW/2.8)));
+        const cols=Math.max(128,Math.min(240,Math.round(data._midPerimeter/4.8)));
         for(let r=1;r<rows;r++){
           tSet.add(round(edgePad + (r/rows)*(1-edgePad*2)));
         }
@@ -4118,7 +4122,7 @@ function groovyPatternField(x,y,data){
         smoothing.push(smooth);
       };
 
-      const useCrispPatternTop = state.surfaceMode==='pattern' && (state.flatPattern==='checker' || state.flatPattern==='bands');
+      const useCrispPatternTop = state.surfaceMode==='pattern' && (state.flatPattern==='checker' || state.flatPattern==='bands' || state.flatPattern==='groovy');
 
       if(useCrispPatternTop){
         const {uStops,tStops,edgePad}=buildPatternStops(data);
@@ -6013,6 +6017,7 @@ function groovyPatternField(x,y,data){
       if(btn.disabled) return;
       state.surfaceMode=btn.dataset.surfaceMode;
       if(state.surfaceMode==='relief'){
+        state.reliefStyle='pillow';
         state.mode='depth';
         view3d.yaw=.72;
         view3d.pitch=.28;
