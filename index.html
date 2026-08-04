@@ -311,7 +311,42 @@
       box-shadow:inset -5px -5px 8px rgba(68,54,43,.14);
     }
 
-    .shape-icon.capsule{border-radius:999px;width:40px;height:28px}
+
+.shape-icon.splat{
+  clip-path:polygon(
+    12% 6%, 23% 15%, 34% 5%, 45% 16%, 60% 2%, 72% 15%, 91% 11%,
+    83% 28%, 97% 40%, 82% 51%, 96% 66%, 80% 74%, 87% 93%,
+    69% 84%, 58% 98%, 46% 83%, 33% 95%, 24% 80%, 7% 87%,
+    18% 68%, 3% 58%, 16% 47%, 4% 31%, 20% 24%
+  );
+  border-radius:16px;
+}
+.shape-icon.bloom{
+  clip-path:polygon(
+    50% 0%, 63% 10%, 79% 6%, 85% 20%, 97% 28%, 90% 44%,
+    100% 58%, 86% 67%, 90% 84%, 73% 86%, 65% 100%, 50% 90%,
+    35% 100%, 27% 86%, 10% 84%, 14% 67%, 0% 58%, 10% 44%,
+    3% 28%, 15% 20%, 21% 6%, 37% 10%
+  );
+  border-radius:50%;
+}
+.shape-icon.puzzle{
+  clip-path:polygon(
+    16% 10%, 43% 10%, 43% 2%, 57% 2%, 57% 10%, 84% 10%,
+    84% 34%, 96% 34%, 96% 48%, 84% 48%, 84% 88%,
+    58% 88%, 58% 100%, 42% 100%, 42% 88%, 16% 88%,
+    16% 62%, 5% 62%, 5% 48%, 16% 48%
+  );
+  border-radius:8px;
+}
+.shape-icon.sunburst{
+  clip-path:polygon(
+    50% 0%,56% 11%,66% 3%,69% 15%,80% 8%,79% 21%,91% 17%,86% 29%,100% 29%,92% 40%,100% 50%,92% 60%,100% 71%,86% 71%,91% 83%,79% 79%,80% 92%,69% 85%,66% 97%,56% 89%,50% 100%,44% 89%,34% 97%,31% 85%,20% 92%,21% 79%,9% 83%,14% 71%,0% 71%,8% 60%,0% 50%,8% 40%,0% 29%,14% 29%,9% 17%,21% 21%,20% 8%,31% 15%,34% 3%,44% 11%
+  );
+  border-radius:50%;
+}
+
+.shape-icon.capsule{border-radius:999px;width:40px;height:28px}
     .color-list{display:flex;gap:9px;flex-wrap:wrap}
     .color-dot{
       width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
@@ -1687,7 +1722,11 @@
             <div class="shape-grid" id="shapeChoices">
               <button class="shape-card active" data-shape="classic"><span class="shape-icon classic"></span>Классическая</button>
               <button class="shape-card" data-shape="flower"><span class="shape-icon flower"></span>Цветок</button>
+              <button class="shape-card" data-shape="bloom"><span class="shape-icon bloom"></span>Цветочек</button>
+              <button class="shape-card" data-shape="splat"><span class="shape-icon splat"></span>Клякса</button>
               <button class="shape-card" data-shape="liquid"><span class="shape-icon liquid"></span>Жидкий металл</button>
+              <button class="shape-card" data-shape="puzzle"><span class="shape-icon puzzle"></span>Пазл</button>
+              <button class="shape-card" data-shape="sunburst"><span class="shape-icon sunburst"></span>Зубчатая</button>
             </div>
           </div>
 
@@ -1745,6 +1784,7 @@
                 <button class="surface-text-card active" data-flat-pattern="ring">Контур<small>Цветная линия вокруг внутреннего отверстия</small></button>
                 <button class="surface-text-card" data-flat-pattern="checker">Шахматка<small>Крупные клетки с мягко скруглёнными углами</small></button>
                 <button class="surface-text-card" data-flat-pattern="bands">Прямые полосы<small>Ровные полосы, повторяющиеся по всей рамке</small></button>
+                <button class="surface-text-card" data-flat-pattern="groovy">Цветочный<small>Органичные волнистые линии, как на референсе</small></button>
               </div>
             </div>
           </div>
@@ -2103,7 +2143,7 @@
     };
     const surfaceModeNames = { plain:'Однотонная', relief:'Рельефная', pattern:'С узором' };
     const reliefStyleNames = { waves:'Морские волны', pillow:'Надутая' };
-    const flatPatternNames = { ring:'Контур', checker:'Шахматка', bands:'Прямые полосы' };
+    const flatPatternNames = { ring:'Контур', checker:'Шахматка', bands:'Прямые полосы', groovy:'Цветочный' };
     const profileNames = {
       thin: 'Тонкая',
       soft: 'Стандартная',
@@ -3333,71 +3373,195 @@
       return points;
     }
 
-    function liquidRaw(width,height,radius,count=520){
-      const amplitude=Math.min(width,height)*.075;
-      const baseWidth=Math.max(10,width-amplitude*2.15);
-      const baseHeight=Math.max(10,height-amplitude*2.15);
-      const baseRadius=Math.max(
-        1,
-        Math.min(Number(radius)||0,baseWidth/2,baseHeight/2)
-      );
-      const base=resampleClosed(
-        roundedRectRaw(baseWidth,baseHeight,baseRadius,70),
-        count
-      );
-      const points=[];
 
-      for(let i=0;i<count;i++){
-        const prev=base[(i-1+count)%count];
-        const next=base[(i+1)%count];
-        const dx=next[0]-prev[0];
-        const dy=next[1]-prev[1];
-        const len=Math.hypot(dx,dy)||1;
-        const nx=dy/len;
-        const ny=-dx/len;
-        const phase=(i/count)*Math.PI*2;
+function liquidRaw(width,height,radius,count=520){
+  const amplitude=Math.min(width,height)*.075;
+  const baseWidth=Math.max(10,width-amplitude*2.15);
+  const baseHeight=Math.max(10,height-amplitude*2.15);
+  const baseRadius=Math.max(
+    1,
+    Math.min(Number(radius)||0,baseWidth/2,baseHeight/2)
+  );
+  const base=resampleClosed(
+    roundedRectRaw(baseWidth,baseHeight,baseRadius,70),
+    count
+  );
+  const points=[];
 
-        const wave=
-          .56+
-          .21*Math.sin(phase*3+.42)+
-          .15*Math.cos(phase*5-1.08)+
-          .08*Math.sin(phase*7+1.74);
-        const bulge=amplitude*clamp(wave,.12,1);
-        points.push([
-          base[i][0]+nx*bulge,
-          base[i][1]+ny*bulge
-        ]);
-      }
+  for(let i=0;i<count;i++){
+    const prev=base[(i-1+count)%count];
+    const next=base[(i+1)%count];
+    const dx=next[0]-prev[0];
+    const dy=next[1]-prev[1];
+    const len=Math.hypot(dx,dy)||1;
+    const nx=dy/len;
+    const ny=-dx/len;
+    const phase=(i/count)*Math.PI*2;
 
-      // Normalize the deterministic organic contour to the exact requested
-      // outer dimensions so preview, limits and 3MF remain consistent.
-      const xs=points.map(point=>point[0]);
-      const ys=points.map(point=>point[1]);
-      const minX=Math.min(...xs),maxX=Math.max(...xs);
-      const minY=Math.min(...ys),maxY=Math.max(...ys);
-      const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
-      const scaleX=width/Math.max(.001,maxX-minX);
-      const scaleY=height/Math.max(.001,maxY-minY);
+    const wave=
+      .56+
+      .21*Math.sin(phase*3+.42)+
+      .15*Math.cos(phase*5-1.08)+
+      .08*Math.sin(phase*7+1.74);
+    const bulge=amplitude*clamp(wave,.12,1);
+    points.push([
+      base[i][0]+nx*bulge,
+      base[i][1]+ny*bulge
+    ]);
+  }
+  return normalizeContour(points,width,height);
+}
 
-      return points.map(point=>[
-        (point[0]-cx)*scaleX,
-        (point[1]-cy)*scaleY
-      ]);
+function normalizeContour(points,width,height){
+  const xs=points.map(point=>point[0]);
+  const ys=points.map(point=>point[1]);
+  const minX=Math.min(...xs),maxX=Math.max(...xs);
+  const minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  const scaleX=width/Math.max(.001,maxX-minX);
+  const scaleY=height/Math.max(.001,maxY-minY);
+  return points.map(point=>[
+    (point[0]-cx)*scaleX,
+    (point[1]-cy)*scaleY
+  ]);
+}
+
+function wrapPhaseDistance(a,b){
+  let d=Math.abs(a-b)%1;
+  if(d>.5) d=1-d;
+  return d;
+}
+
+function splatRaw(width,height,radius,count=560){
+  const amplitude=Math.min(width,height)*.135;
+  const baseWidth=Math.max(10,width-amplitude*2.35);
+  const baseHeight=Math.max(10,height-amplitude*2.35);
+  const baseRadius=Math.max(2,Math.min((Number(radius)||0)+4,baseWidth/2,baseHeight/2));
+  const base=resampleClosed(roundedRectRaw(baseWidth,baseHeight,baseRadius,72),count);
+  const lobeCenters=[.02,.10,.18,.29,.39,.50,.60,.71,.81,.90,.97];
+  const lobeWeights=[1.0,.55,.86,.48,.82,.62,.95,.52,.88,.58,.74];
+  const sigma=.030;
+  const points=[];
+  for(let i=0;i<count;i++){
+    const prev=base[(i-1+count)%count];
+    const next=base[(i+1)%count];
+    const dx=next[0]-prev[0],dy=next[1]-prev[1];
+    const len=Math.hypot(dx,dy)||1;
+    const nx=dy/len,ny=-dx/len;
+    const u=i/count;
+    let lobe=.12+.05*Math.sin(u*Math.PI*8+.35);
+    for(let k=0;k<lobeCenters.length;k++){
+      const d=wrapPhaseDistance(u,lobeCenters[k]);
+      lobe+=lobeWeights[k]*Math.exp(-(d*d)/(2*sigma*sigma));
     }
+    const bulge=amplitude*clamp(lobe,.08,1.18);
+    points.push([base[i][0]+nx*bulge,base[i][1]+ny*bulge]);
+  }
+  return normalizeContour(points,width,height);
+}
 
-    function contourForShape(shape,width,height,radius,count=160){
-      let raw;
-      if(shape==='flower'){
-        raw=flowerRaw(width,height,radius,12,Math.max(count,480));
-      }else if(shape==='liquid'){
-        raw=liquidRaw(width,height,radius,Math.max(count,520));
-      }else if(shape==='arch'){
-        raw=archRaw(width,height);
-      }else{
-        raw=roundedRectRaw(width,height,Math.max(0,Number(radius)||0));
-      }
-      return resampleClosed(raw,count);
-    }
+function bloomRaw(width,height,radius,petals=8,count=520){
+  const amplitude=Math.min(width,height)*.17;
+  const baseWidth=Math.max(10,width-amplitude*1.8);
+  const baseHeight=Math.max(10,height-amplitude*1.8);
+  const baseRadius=Math.max(8,Math.min((Number(radius)||0)+10,baseWidth/2,baseHeight/2));
+  const base=resampleClosed(roundedRectRaw(baseWidth,baseHeight,baseRadius,72),count);
+  const points=[];
+  for(let i=0;i<count;i++){
+    const prev=base[(i-1+count)%count];
+    const next=base[(i+1)%count];
+    const dx=next[0]-prev[0],dy=next[1]-prev[1];
+    const len=Math.hypot(dx,dy)||1;
+    const nx=dy/len,ny=-dx/len;
+    const phase=(i/count)*Math.PI*2;
+    const petal=Math.pow(Math.max(0,Math.cos(phase*petals*.5)),2.25);
+    const shoulder=.24+.10*Math.cos(phase*petals+Math.PI*.5);
+    const bulge=amplitude*clamp(shoulder+petal,.10,1.1);
+    points.push([base[i][0]+nx*bulge,base[i][1]+ny*bulge]);
+  }
+  return normalizeContour(points,width,height);
+}
+
+function appendArc(points,cx,cy,r,start,end,steps=8){
+  for(let i=0;i<=steps;i++){
+    const t=i/steps;
+    const a=start+(end-start)*t;
+    points.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);
+  }
+}
+
+function puzzleRaw(width,height,radius){
+  const w=width, h=height;
+  const hw=w/2, hh=h/2;
+  const r=Math.max(2,Math.min(Number(radius)||8,Math.min(w,h)*.12));
+  const tab=Math.min(w,h)*.145;
+  const neck=Math.min(w,h)*.095;
+  const inset=Math.min(w,h)*.10;
+  const pts=[];
+
+  // Start on top edge after top-left corner.
+  pts.push([-hw+r,-hh]);
+  pts.push([-neck,-hh]);
+  appendArc(pts,0,-hh,tab,Math.PI,0,12); // top outward tab
+  pts.push([hw-r,-hh]);
+  appendArc(pts,hw-r,-hh+r,r,-Math.PI/2,0,8); // top-right corner
+  pts.push([hw,-neck]);
+  appendArc(pts,hw,0,tab,-Math.PI/2,Math.PI/2,12); // right outward tab
+  pts.push([hw,hh-r]);
+  appendArc(pts,hw-r,hh-r,r,0,Math.PI/2,8); // bottom-right corner
+  pts.push([neck,hh]);
+  appendArc(pts,0,hh,inset,0,Math.PI,12); // bottom inward socket
+  pts.push([-hw+r,hh]);
+  appendArc(pts,-hw+r,hh-r,r,Math.PI/2,Math.PI,8); // bottom-left corner
+  pts.push([-hw,neck]);
+  appendArc(pts,-hw,0,inset,Math.PI/2,-Math.PI/2,12); // left inward socket
+  pts.push([-hw,-hh+r]);
+  appendArc(pts,-hw+r,-hh+r,r,Math.PI,Math.PI*1.5,8); // top-left corner
+  return normalizeContour(pts,width,height);
+}
+
+function sunburstRaw(width,height,radius,spikes=38,count=560){
+  const amplitude=Math.min(width,height)*.16;
+  const baseWidth=Math.max(10,width-amplitude*2.05);
+  const baseHeight=Math.max(10,height-amplitude*2.05);
+  const baseRadius=Math.max(8,Math.min((Number(radius)||0)+6,baseWidth/2,baseHeight/2));
+  const base=resampleClosed(roundedRectRaw(baseWidth,baseHeight,baseRadius,70),count);
+  const points=[];
+  for(let i=0;i<count;i++){
+    const prev=base[(i-1+count)%count];
+    const next=base[(i+1)%count];
+    const dx=next[0]-prev[0],dy=next[1]-prev[1];
+    const len=Math.hypot(dx,dy)||1;
+    const nx=dy/len,ny=-dx/len;
+    const f=((i/count)*spikes)%1;
+    const tri=1-Math.abs(f*2-1);
+    const bulge=amplitude*(.22+.78*Math.pow(tri,1.5));
+    points.push([base[i][0]+nx*bulge,base[i][1]+ny*bulge]);
+  }
+  return normalizeContour(points,width,height);
+}
+
+function contourForShape(shape,width,height,radius,count=160){
+  let raw;
+  if(shape==='flower'){
+    raw=flowerRaw(width,height,radius,12,Math.max(count,480));
+  }else if(shape==='bloom'){
+    raw=bloomRaw(width,height,radius,8,Math.max(count,520));
+  }else if(shape==='splat'){
+    raw=splatRaw(width,height,radius,Math.max(count,560));
+  }else if(shape==='liquid'){
+    raw=liquidRaw(width,height,radius,Math.max(count,520));
+  }else if(shape==='puzzle'){
+    raw=puzzleRaw(width,height,radius);
+  }else if(shape==='sunburst'){
+    raw=sunburstRaw(width,height,radius,38,Math.max(count,560));
+  }else if(shape==='arch'){
+    raw=archRaw(width,height);
+  }else{
+    raw=roundedRectRaw(width,height,Math.max(0,Number(radius)||0));
+  }
+  return resampleClosed(raw,count);
+}
 
     function openingContour(width,height,radius,count=160){
       const safeRadius=Math.max(0,Math.min(Number(radius)||0,width/2,height/2));
@@ -3709,6 +3873,40 @@ ${v(c)}
       return outside+inside-radius<=0;
     }
 
+
+function getGroovyPatternSeeds(){
+  return [
+    {x:-.60,y:-.56,a:.45,sx:.72,sy:.42,bias:.00},
+    {x:0.00,y:-.68,a:0,sx:.82,sy:.45,bias:.02},
+    {x:.60,y:-.56,a:-.45,sx:.72,sy:.42,bias:.00},
+    {x:.79,y:0.00,a:-1.05,sx:.64,sy:.40,bias:.04},
+    {x:.60,y:.56,a:-.32,sx:.72,sy:.42,bias:.00},
+    {x:0.00,y:.68,a:0,sx:.82,sy:.45,bias:.02},
+    {x:-.60,y:.56,a:.32,sx:.72,sy:.42,bias:.00},
+    {x:-.79,y:0.00,a:1.05,sx:.64,sy:.40,bias:.04},
+    {x:0.0,y:0.0,a:0,sx:1.05,sy:.72,bias:.12}
+  ];
+}
+
+function groovyPatternField(x,y,data){
+  const nx=x/Math.max(1,data.outerW/2);
+  const ny=y/Math.max(1,data.outerH/2);
+  let field=Infinity;
+  const seeds=getGroovyPatternSeeds();
+  for(const seed of seeds){
+    const dx=nx-seed.x;
+    const dy=ny-seed.y;
+    const ca=Math.cos(seed.a), sa=Math.sin(seed.a);
+    const rx=(dx*ca+dy*sa)/seed.sx;
+    const ry=(-dx*sa+dy*ca)/seed.sy;
+    const ellipse=Math.sqrt(rx*rx+ry*ry)+seed.bias;
+    field=Math.min(field,ellipse);
+  }
+  // Slight deterministic wobble keeps the lines lively without becoming noisy.
+  field += .045*Math.sin((nx*4.4-ny*2.8)*Math.PI) + .028*Math.cos((nx*2.1+ny*3.6)*Math.PI);
+  return field;
+}
+
     function flatPatternMaterial(x,y,t,data,u=0){
       if(state.surfaceMode!=='pattern') return 0;
 
@@ -3750,6 +3948,14 @@ ${v(c)}
         const stripe=Math.max(10,Math.min(16,bandW*0.62));
         const col=Math.floor(s/stripe);
         return col%2===0 ? 1 : 0;
+      }
+
+      if(state.flatPattern==='groovy'){
+        const pitch=.24;
+        const width=.112;
+        const field=groovyPatternField(x,y,data);
+        const phase=((field/pitch)%1+1)%1;
+        return phase<width/pitch ? 1 : 0;
       }
 
       if(state.flatPattern==='dots'){
@@ -3832,6 +4038,15 @@ ${v(c)}
       }else if(state.flatPattern==='bands'){
         const stripe=Math.max(10,Math.min(16,data.margin*0.62));
         const cols=Math.max(10,Math.round(data._midPerimeter/stripe));
+        for(let c=1;c<cols;c++){
+          uSet.add(round(c/cols));
+        }
+      }else if(state.flatPattern==='groovy'){
+        const rows=Math.max(14,Math.min(28,Math.round(usableW/3.4)));
+        const cols=Math.max(96,Math.min(180,Math.round(data._midPerimeter/6.2)));
+        for(let r=1;r<rows;r++){
+          tSet.add(round(edgePad + (r/rows)*(1-edgePad*2)));
+        }
         for(let c=1;c<cols;c++){
           uSet.add(round(c/cols));
         }
@@ -4076,7 +4291,7 @@ ${v(c)}
       const vertexMap=new Map();
       const vertices=[];
       const faces=[];
-      const keyOf=(p)=>`${p[0].toFixed(5)},${p[1].toFixed(5)},${p[2].toFixed(5)}`;
+      const keyOf=(p)=>`${p[0].toFixed(7)},${p[1].toFixed(7)},${p[2].toFixed(7)}`;
       const idx=(p)=>{
         const key=keyOf(p);
         if(vertexMap.has(key)) return vertexMap.get(key);
@@ -4110,7 +4325,7 @@ ${v(c)}
       const vertexMap=new Map();
       const vertices=[];
       const faces=[];
-      const keyOf=(p)=>`${p[0].toFixed(5)},${p[1].toFixed(5)},${p[2].toFixed(5)}`;
+      const keyOf=(p)=>`${p[0].toFixed(7)},${p[1].toFixed(7)},${p[2].toFixed(7)}`;
       const idx=(p)=>{
         const key=keyOf(p);
         if(vertexMap.has(key)) return vertexMap.get(key);
@@ -4176,10 +4391,7 @@ ${v(c)}
         }
       }
 
-      const baseTriangles=[];
-      const patternTriangles=[];
       const point=(u,t,z)=>sampleAnnulusPoint(data,u,t,z);
-
       const addCellHorizontal=(target,cell,z,reverse=false)=>{
         const a=point(cell.u0,cell.t0,z);
         const b=point(cell.u1,cell.t0,z);
@@ -4187,7 +4399,6 @@ ${v(c)}
         const d=point(cell.u0,cell.t1,z);
         addQuad(target,a,b,c,d,reverse);
       };
-
       const addUSide=(target,u,t0,t1,z0,z1,reverse=false)=>{
         const a=point(u,t0,z0);
         const b=point(u,t1,z0);
@@ -4195,7 +4406,6 @@ ${v(c)}
         const d=point(u,t0,z1);
         addQuad(target,a,b,c,d,reverse);
       };
-
       const addTSide=(target,t,u0,u1,z0,z1,reverse=false)=>{
         const a=point(u0,t,z0);
         const b=point(u1,t,z0);
@@ -4204,61 +4414,41 @@ ${v(c)}
         addQuad(target,a,b,c,d,reverse);
       };
 
-      for(let ti=0;ti<tCount;ti++){
-        for(let ui=0;ui<uCount;ui++){
-          const cell=cells[ti][ui];
-          const isPattern=cell.material===1;
-          const baseBottom=isPattern ? inlayDepth : 0;
+      const zLevels=[0,inlayDepth,thickness];
+      const lowerBaseOcc=Array.from({length:tCount},(_,ti)=>Array.from({length:uCount},(_,ui)=>cells[ti][ui].material===0));
+      const upperBaseOcc=Array.from({length:tCount},()=>Array.from({length:uCount},()=>true));
+      const patternOcc=Array.from({length:tCount},(_,ti)=>Array.from({length:uCount},(_,ui)=>cells[ti][ui].material===1));
 
-          // Base volume: always extends to the full model thickness.
-          addCellHorizontal(baseTriangles,cell,thickness,false);
-          addCellHorizontal(baseTriangles,cell,baseBottom,true);
+      function trianglesFromOccupancy(layersOcc){
+        const triangles=[];
+        const layerCount=layersOcc.length;
+        for(let li=0;li<layerCount;li++){
+          const z0=zLevels[li];
+          const z1=zLevels[li+1];
+          for(let ti=0;ti<tCount;ti++){
+            for(let ui=0;ui<uCount;ui++){
+              if(!layersOcc[li][ti][ui]) continue;
+              const cell=cells[ti][ui];
+              const leftUi=(ui-1+uCount)%uCount;
+              const rightUi=(ui+1)%uCount;
 
-          // Inner and outer walls.
-          if(ti===0) addTSide(baseTriangles,cell.t0,cell.u0,cell.u1,baseBottom,thickness,true);
-          if(ti===tCount-1) addTSide(baseTriangles,cell.t1,cell.u0,cell.u1,baseBottom,thickness,false);
+              if(li===0 || !layersOcc[li-1][ti][ui]) addCellHorizontal(triangles,cell,z0,true);
+              if(li===layerCount-1 || !layersOcc[li+1][ti][ui]) addCellHorizontal(triangles,cell,z1,false);
 
-          // Vertical cavity walls between base and inlay.
-          const right=cells[ti][(ui+1)%uCount];
-          const rightBottom=right.material===1 ? inlayDepth : 0;
-          if(baseBottom<rightBottom){
-            addUSide(baseTriangles,cell.u1,cell.t0,cell.t1,baseBottom,rightBottom,false);
-          }
+              if(!layersOcc[li][ti][leftUi]) addUSide(triangles,cell.u0,cell.t0,cell.t1,z0,z1,true);
+              if(!layersOcc[li][ti][rightUi]) addUSide(triangles,cell.u1,cell.t0,cell.t1,z0,z1,false);
 
-          if(ti<tCount-1){
-            const outward=cells[ti+1][ui];
-            const outwardBottom=outward.material===1 ? inlayDepth : 0;
-            if(baseBottom<outwardBottom){
-              addTSide(baseTriangles,cell.t1,cell.u0,cell.u1,baseBottom,outwardBottom,false);
-            }
-          }
-
-          // Pattern is a real flush inlay from the build plate to inlayDepth.
-          if(isPattern){
-            addCellHorizontal(patternTriangles,cell,0,true);
-            addCellHorizontal(patternTriangles,cell,inlayDepth,false);
-
-            const left=cells[ti][(ui-1+uCount)%uCount];
-            if(left.material!==1){
-              addUSide(patternTriangles,cell.u0,cell.t0,cell.t1,0,inlayDepth,true);
-            }
-            if(right.material!==1){
-              addUSide(patternTriangles,cell.u1,cell.t0,cell.t1,0,inlayDepth,false);
-            }
-
-            if(ti===0 || cells[ti-1][ui].material!==1){
-              addTSide(patternTriangles,cell.t0,cell.u0,cell.u1,0,inlayDepth,true);
-            }
-            if(ti===tCount-1 || cells[ti+1][ui].material!==1){
-              addTSide(patternTriangles,cell.t1,cell.u0,cell.u1,0,inlayDepth,false);
+              if(ti===0 || !layersOcc[li][ti-1][ui]) addTSide(triangles,cell.t0,cell.u0,cell.u1,z0,z1,true);
+              if(ti===tCount-1 || !layersOcc[li][ti+1][ui]) addTSide(triangles,cell.t1,cell.u0,cell.u1,z0,z1,false);
             }
           }
         }
+        return triangles;
       }
 
       return {
-        baseTriangles,
-        patternTriangles,
+        baseTriangles:trianglesFromOccupancy([lowerBaseOcc,upperBaseOcc]),
+        patternTriangles:trianglesFromOccupancy([patternOcc]),
         inlayDepth
       };
     }
@@ -4315,10 +4505,11 @@ ${v(c)}
   <Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
 </Relationships>`;
 
+      const title=`FORMA — ${typeNames[state.type]||'Рамка'} ${state.innerWidth}x${state.innerHeight} ${flatPatternNames[state.flatPattern]||'Узор'} face down`;
       const model = `<?xml version="1.0" encoding="UTF-8"?>
 <model unit="millimeter" xml:lang="ru-RU" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
-  <metadata name="Title">FORMA — two-color flat inlay</metadata>
-  <metadata name="Description">Two separate components. The decorated face is placed at Z=0 for face-down printing on the build plate.</metadata>
+  <metadata name="Title">${title}</metadata>
+  <metadata name="Description">Watertight two-color face-down inlay. Base and pattern are exported as parts of one multipart object.</metadata>
   <resources>
     <basematerials id="1">
       <base name="${state.colorName}" displaycolor="${hexTo3mf(state.color)}"/>
@@ -4330,36 +4521,39 @@ ${v(c)}
     <object id="3" type="model" name="Pattern" pid="1" pindex="1">
       ${meshXmlFromTriangles(parts.patternTriangles)}
     </object>
+    <object id="4" type="model" name="${title}">
+      <components>
+        <component objectid="2"/>
+        <component objectid="3"/>
+      </components>
+    </object>
   </resources>
   <build>
-    <item objectid="2"/>
-    <item objectid="3"/>
+    <item objectid="4"/>
   </build>
 </model>`;
 
       const modelSettings = `<?xml version="1.0" encoding="UTF-8"?>
 <config>
-  <object id="2">
-    <metadata key="name" value="Base"/>
-    <metadata key="extruder" value="1"/>
-  </object>
-  <object id="3">
-    <metadata key="name" value="Pattern"/>
-    <metadata key="extruder" value="2"/>
+  <object id="4">
+    <metadata key="name" value="${title}"/>
+    <part id="2" subtype="normal_part">
+      <metadata key="name" value="Base"/>
+      <metadata key="extruder" value="1"/>
+    </part>
+    <part id="3" subtype="normal_part">
+      <metadata key="name" value="Pattern"/>
+      <metadata key="extruder" value="2"/>
+    </part>
   </object>
   <plate>
     <metadata key="plater_id" value="1"/>
     <metadata key="filament_maps" value="1 2"/>
     <metadata key="filament_volume_maps" value="1 2"/>
     <model_instance>
-      <metadata key="object_id" value="2"/>
+      <metadata key="object_id" value="4"/>
       <metadata key="instance_id" value="0"/>
-      <metadata key="identify_id" value="2"/>
-    </model_instance>
-    <model_instance>
-      <metadata key="object_id" value="3"/>
-      <metadata key="instance_id" value="0"/>
-      <metadata key="identify_id" value="3"/>
+      <metadata key="identify_id" value="4"/>
     </model_instance>
   </plate>
   <assemble></assemble>
