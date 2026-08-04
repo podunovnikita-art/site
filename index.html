@@ -2482,7 +2482,7 @@
 
       // Finishes add only a small production/material adjustment.
       let surface=0;
-      if(state.surfaceMode==='pattern') surface=30;
+      if(state.surfaceMode==='pattern') surface=100;
       if(state.surfaceMode==='relief'){
         const reliefRatio=clamp(Number(state.reliefHeight)/10,0,1);
         surface=priceRound(reliefRatio*40);
