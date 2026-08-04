@@ -1723,7 +1723,6 @@
               <button class="shape-card active" data-shape="classic"><span class="shape-icon classic"></span>Классическая</button>
               <button class="shape-card" data-shape="flower"><span class="shape-icon flower"></span>Цветок</button>
               <button class="shape-card" data-shape="splat"><span class="shape-icon splat"></span>Клякса</button>
-              <button class="shape-card" data-shape="puzzle"><span class="shape-icon puzzle"></span>Пазл</button>
               <button class="shape-card" data-shape="sunburst"><span class="shape-icon sunburst"></span>Зубчатая</button>
             </div>
           </div>
@@ -2134,9 +2133,10 @@
       socket: 'Рамка для розетки'
     };
     const shapeNames = {
-      classic: 'Классическая',
-      flower: 'Цветок',
-      liquid: 'Жидкий металл'
+      classic:'Классическая',
+      flower:'Цветок',
+      splat:'Клякса',
+      sunburst:'Зубчатая'
     };
     const surfaceModeNames = { plain:'Однотонная', relief:'Рельефная', pattern:'С узором' };
     const reliefStyleNames = { pillow:'Надутая' };
@@ -2230,6 +2230,7 @@
     }
 
     function syncControls(){
+      if(state.shape==='puzzle' || !shapeNames[state.shape]) state.shape='classic';
       if(state.mode!=='front' && state.mode!=='depth') state.mode='depth';
       updateNativeLimits();
       $('configTitle').textContent = typeNames[state.type];
@@ -2399,28 +2400,129 @@
       return updateNativeLimits();
     }
 
+    function priceRound(value){
+      return Math.round(Number(value||0)/10)*10;
+    }
+
+    function contourArea(points){
+      let sum=0;
+      for(let i=0;i<points.length;i++){
+        const a=points[i];
+        const b=points[(i+1)%points.length];
+        sum+=a[0]*b[1]-b[0]*a[1];
+      }
+      return Math.abs(sum)/2;
+    }
+
+    function framePlanAreaForPrice(margin,shape=state.shape){
+      const opening=openingDimensions();
+      const outerWidth=opening.width+Number(margin)*2;
+      const outerHeight=opening.height+Number(margin)*2;
+      const outer=contourForShape(
+        shape,
+        outerWidth,
+        outerHeight,
+        Number(state.radius),
+        360
+      );
+      const inner=openingContour(
+        opening.width,
+        opening.height,
+        Number(state.innerRadius),
+        360
+      );
+      return Math.max(1,contourArea(outer)-contourArea(inner));
+    }
+
     function calcPriceDetails(){
-      const o=outerDimensions();
-      const area=o.width*o.height;
+      const base=590;
+      const opening=openingDimensions();
+      const margin=Number(state.margin);
+      const thickness=Number(state.thickness);
 
-      const base=690;
-      const referenceArea=134*134;
-      const maxArea=248*248;
-      const sizeRatio=clamp((area-referenceArea)/(maxArea-referenceArea),0,1);
-      const size=Math.round((sizeRatio*250)/10)*10;
+      const printArea=productionArea(state.surfaceMode);
+      const maxMargin=Math.max(
+        MIN_MARGIN,
+        Math.min(
+          70,
+          (printArea.x-opening.width)/2,
+          (printArea.y-opening.height)/2
+        )
+      );
 
-      const heightRatio=clamp((Number(state.thickness)-7)/9,0,1);
-      const height=Math.round((heightRatio*100)/10)*10;
+      const currentPlanArea=framePlanAreaForPrice(margin);
+      const minimumPlanArea=framePlanAreaForPrice(MIN_MARGIN);
+      const maximumPlanArea=framePlanAreaForPrice(maxMargin);
 
+      // The width of the visible frame is the main price factor because it
+      // creates the largest change in the amount of plastic.
+      const marginRatio=clamp(
+        (currentPlanArea-minimumPlanArea)/
+        Math.max(1,maximumPlanArea-minimumPlanArea),
+        0,
+        1
+      );
+      const frameWidth=priceRound(marginRatio*360);
+
+      // The physical size of the factory block matters, but less than margin.
+      const openingArea=opening.width*opening.height;
+      const minOpeningArea=46*46;
+      const maxOpeningArea=209*209;
+      const sizeRatio=clamp(
+        (openingArea-minOpeningArea)/
+        (maxOpeningArea-minOpeningArea),
+        0,
+        1
+      );
+      const modelSize=priceRound(sizeRatio*100);
+
+      // Height changes material use, but receives a deliberately lower weight.
+      const heightRatio=clamp((thickness-3)/(16-3),0,1);
+      const height=priceRound(heightRatio*70);
+
+      // Finishes add only a small production/material adjustment.
       let surface=0;
-      if(state.surfaceMode==='pattern') surface=100;
+      if(state.surfaceMode==='pattern') surface=30;
       if(state.surfaceMode==='relief'){
         const reliefRatio=clamp(Number(state.reliefHeight)/10,0,1);
-        surface=Math.round((reliefRatio*300)/10)*10;
+        surface=priceRound(reliefRatio*40);
       }
 
-      const total=Math.max(690,Math.min(1190,base+size+height+surface));
-      return {base,size,height,surface,total};
+      // Compare the real selected silhouette with a classic frame of the same
+      // dimensions. Larger silhouettes cost slightly more; leaner ones less.
+      const classicPlanArea=framePlanAreaForPrice(margin,'classic');
+      const shapeDifference=
+        (currentPlanArea-classicPlanArea)/
+        Math.max(1,classicPlanArea);
+      const shape=priceRound(clamp(shapeDifference*180,-20,30));
+
+      // Stronger outer rounding removes a little material.
+      const outer=outerDimensions();
+      const maximumRadius=Math.max(1,Math.min(outer.width,outer.height)/2);
+      const radiusRatio=clamp(Number(state.radius)/maximumRadius,0,1);
+      const rounding=-priceRound(radiusRatio*40);
+
+      const rawTotal=
+        base+
+        frameWidth+
+        modelSize+
+        height+
+        surface+
+        shape+
+        rounding;
+
+      const total=priceRound(clamp(rawTotal,590,1190));
+
+      return {
+        base,
+        frameWidth,
+        modelSize,
+        height,
+        surface,
+        shape,
+        rounding,
+        total
+      };
     }
 
     function calcPrice(){
@@ -3199,14 +3301,26 @@
       $('priceValue').textContent=money.format(price)+' ₽';
       const priceDetails=calcPriceDetails();
       const priceRows=[
-        ['Базовая рамка',priceDetails.base],
-        ['Размер',priceDetails.size],
-        ['Высота',priceDetails.height],
-        ['Оформление',priceDetails.surface]
-      ].filter(row=>row[1]>0 || row[0]==='Базовая рамка');
-      $('priceBreakdown').innerHTML=priceRows.map(row=>
-        `<div class="price-breakdown-row"><span>${row[0]}</span><strong>${row[1]===priceDetails.base?money.format(row[1])+' ₽':'+'+money.format(row[1])+' ₽'}</strong></div>`
-      ).join('');
+        {label:'Базовая рамка',value:priceDetails.base,base:true},
+        {label:'Ширина обрамления',value:priceDetails.frameWidth},
+        {label:'Размер блока',value:priceDetails.modelSize},
+        {label:'Высота',value:priceDetails.height},
+        {label:'Оформление',value:priceDetails.surface},
+        {label:'Форма',value:priceDetails.shape},
+        {label:'Скругление формы',value:priceDetails.rounding}
+      ].filter(row=>row.base || row.value!==0);
+
+      $('priceBreakdown').innerHTML=priceRows.map(row=>{
+        let valueText;
+        if(row.base){
+          valueText=`${money.format(row.value)} ₽`;
+        }else if(row.value>0){
+          valueText=`+${money.format(row.value)} ₽`;
+        }else{
+          valueText=`−${money.format(Math.abs(row.value))} ₽`;
+        }
+        return `<div class="price-breakdown-row"><span>${row.label}</span><strong>${valueText}</strong></div>`;
+      }).join('');
       const opening=openingDimensions();
       $('dimensionBadge').innerHTML=`<strong>${o.width} × ${o.height} мм</strong><br>размер вашего блока: ${state.innerWidth} × ${state.innerHeight} мм<br>отверстие: ${opening.width} × ${opening.height} мм`;
       applyPrintSizeStatus();
