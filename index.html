@@ -3487,46 +3487,55 @@ function appendArc(points,cx,cy,r,start,end,steps=8){
   }
 }
 
-function puzzleRaw(width,height,radius){
-  // Cleaner and more laconic puzzle silhouette:
-  // a rounded square body with four modest outward knobs.
-  const knobR=Math.min(width,height)*.095;
-  const bodyW=Math.max(12,width-knobR*2);
-  const bodyH=Math.max(12,height-knobR*2);
-  const hw=bodyW/2, hh=bodyH/2;
-  const bodyR=Math.max(
+function puzzleRaw(width,height,radius,count=720){
+  // Smooth compact puzzle silhouette:
+  // rounded-square core + four soft outward knobs with tangent transitions.
+  const knob=Math.min(width,height)*.082;
+  const baseWidth=Math.max(12,width-knob*2.05);
+  const baseHeight=Math.max(12,height-knob*2.05);
+  const baseRadius=Math.max(
     6,
-    Math.min((Number(radius)||0)+5,Math.min(bodyW,bodyH)*.13)
+    Math.min((Number(radius)||0)+6,Math.min(baseWidth,baseHeight)*.14)
   );
-  const neck=knobR*.72;
-  const pts=[];
+  const base=resampleClosed(
+    roundedRectRaw(baseWidth,baseHeight,baseRadius,84),
+    count
+  );
 
-  // Top-left corner -> top knob -> top-right corner
-  pts.push([-hw+bodyR,-hh]);
-  pts.push([-neck,-hh]);
-  appendArc(pts,0,-hh,knobR,Math.PI,0,24);
-  pts.push([hw-bodyR,-hh]);
-  appendArc(pts,hw-bodyR,-hh+bodyR,bodyR,-Math.PI/2,0,14);
+  const hw=baseWidth/2;
+  const hh=baseHeight/2;
+  const sigmaX=Math.max(8,baseWidth*.15);
+  const sigmaY=Math.max(8,baseHeight*.15);
+  const points=[];
 
-  // Right knob
-  pts.push([hw,-neck]);
-  appendArc(pts,hw,0,knobR,-Math.PI/2,Math.PI/2,24);
-  pts.push([hw,hh-bodyR]);
-  appendArc(pts,hw-bodyR,hh-bodyR,bodyR,0,Math.PI/2,14);
+  for(let i=0;i<count;i++){
+    const prev=base[(i-1+count)%count];
+    const next=base[(i+1)%count];
+    const dx=next[0]-prev[0];
+    const dy=next[1]-prev[1];
+    const len=Math.hypot(dx,dy)||1;
 
-  // Bottom knob
-  pts.push([neck,hh]);
-  appendArc(pts,0,hh,knobR,0,Math.PI,24);
-  pts.push([-hw+bodyR,hh]);
-  appendArc(pts,-hw+bodyR,hh-bodyR,bodyR,Math.PI/2,Math.PI,14);
+    // Outward normal for counter-clockwise contour.
+    const nx=dy/len;
+    const ny=-dx/len;
 
-  // Left knob
-  pts.push([-hw,neck]);
-  appendArc(pts,-hw,0,knobR,Math.PI/2,-Math.PI/2,24);
-  pts.push([-hw,-hh+bodyR]);
-  appendArc(pts,-hw+bodyR,-hh+bodyR,bodyR,Math.PI,Math.PI*1.5,14);
+    const x=base[i][0];
+    const y=base[i][1];
 
-  return pts;
+    const top=Math.exp(-(x*x)/(2*sigmaX*sigmaX))*Math.pow(Math.max(0,y/hh),3.0);
+    const bottom=Math.exp(-(x*x)/(2*sigmaX*sigmaX))*Math.pow(Math.max(0,-y/hh),3.0);
+    const right=Math.exp(-(y*y)/(2*sigmaY*sigmaY))*Math.pow(Math.max(0,x/hw),3.0);
+    const left=Math.exp(-(y*y)/(2*sigmaY*sigmaY))*Math.pow(Math.max(0,-x/hw),3.0);
+
+    const bulge=knob*clamp(top+bottom+left+right,0,1.02);
+
+    points.push([
+      x + nx*bulge,
+      y + ny*bulge
+    ]);
+  }
+
+  return points;
 }
 
 function sunburstRaw(width,height,radius,spikes=38,count=560){
@@ -3561,8 +3570,8 @@ function contourForShape(shape,width,height,radius,count=160){
   }else if(shape==='liquid'){
     raw=liquidRaw(width,height,radius,Math.max(count,520));
   }else if(shape==='puzzle'){
-    raw=puzzleRaw(width,height,radius);
-    count=Math.max(count,360);
+    count=Math.max(count,560);
+    raw=puzzleRaw(width,height,radius,count);
   }else if(shape==='sunburst'){
     raw=sunburstRaw(width,height,radius,38,Math.max(count,560));
   }else if(shape==='arch'){
