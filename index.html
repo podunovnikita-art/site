@@ -1780,14 +1780,14 @@
                 <button class="surface-text-card active" data-flat-pattern="ring">Контур<small>Цветная линия вокруг внутреннего отверстия</small></button>
                 <button class="surface-text-card" data-flat-pattern="checker">Шахматка<small>Крупные клетки с мягко скруглёнными углами</small></button>
                 <button class="surface-text-card" data-flat-pattern="bands">Прямые полосы<small>Ровные полосы, повторяющиеся по всей рамке</small></button>
-                <button class="surface-text-card" data-flat-pattern="groovy">Цветочный<small>Органичные волнистые линии, как на референсе</small></button>
+                <button class="surface-text-card" data-flat-pattern="groovy">Цветочный<small>Органичные волнистые линии с мягким текучим рисунком</small></button>
               </div>
             </div>
           </div>
 
           <div class="control-section relief-level-wrap hidden" id="reliefLevelWrap">
-            <label class="range-label" for="reliefHeightRange">Выраженность рельефа <span class="range-value" id="reliefHeightValue">6 мм</span></label>
-            <input id="reliefHeightRange" type="range" min="0" max="10" step="0.5" value="6" />
+            <label class="range-label" for="reliefHeightRange">Выраженность рельефа <span class="range-value" id="reliefHeightValue">5 мм</span></label>
+            <input id="reliefHeightRange" type="range" min="0" max="10" step="0.5" value="5" />
             <div class="range-end-labels"><span>0 · ровно</span><span>10 · максимум</span></div>
           </div>
 
@@ -2149,8 +2149,8 @@
     const clearancePerSide = 0.5;
 
     const defaults = {
-      switch: { type:'switch', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:6, color:'#FFD400', colorName:'Жёлтый', secondaryColor:'#145BFF', secondaryColorName:'Синий', mode:'front' },
-      socket: { type:'socket', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:6, color:'#145BFF', colorName:'Синий', secondaryColor:'#FFD400', secondaryColorName:'Жёлтый', mode:'front' }
+      switch: { type:'switch', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:5, color:'#FFD400', colorName:'Жёлтый', secondaryColor:'#145BFF', secondaryColorName:'Синий', mode:'front' },
+      socket: { type:'socket', innerWidth:86, innerHeight:86, innerRadius:10, count:1, orientation:'horizontal', shape:'classic', margin:24, radius:18, profile:'soft', thickness:7, surfaceMode:'plain', reliefStyle:'pillow', flatPattern:'ring', reliefHeight:5, color:'#145BFF', colorName:'Синий', secondaryColor:'#FFD400', secondaryColorName:'Жёлтый', mode:'front' }
     };
     let state = {...defaults.switch};
 
@@ -2482,10 +2482,21 @@
 
       // Finishes add only a small production/material adjustment.
       let surface=0;
-      if(state.surfaceMode==='pattern') surface=100;
+      if(state.surfaceMode==='pattern'){
+        if(state.flatPattern==='checker' || state.flatPattern==='groovy') surface=150;
+        else surface=100;
+      }
       if(state.surfaceMode==='relief'){
-        const reliefRatio=clamp(Number(state.reliefHeight)/10,0,1);
-        surface=priceRound(reliefRatio*40);
+        const reliefMm=clamp(Number(state.reliefHeight)||0,0,10);
+
+        // Relief pricing:
+        // 0 mm = no relief and no surcharge;
+        // 5 mm = +150 ₽;
+        // every 1 mm above or below 5 mm changes the surcharge by 20 ₽.
+        // This gives 0.5 mm = +60 ₽, 1 mm = +70 ₽ and 10 mm = +250 ₽.
+        surface=reliefMm===0
+          ? 0
+          : priceRound(50+reliefMm*20);
       }
 
       // Compare the real selected silhouette with a classic frame of the same
@@ -6271,3 +6282,4 @@ function groovyPatternField(x,y,data){
   </script>
 </body>
 </html>
+
