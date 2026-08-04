@@ -3487,26 +3487,41 @@ function appendArc(points,cx,cy,r,start,end,steps=8){
   }
 }
 
-function puzzleRaw(width,height,radius,count=720){
-  // Smooth compact puzzle silhouette:
-  // rounded-square core + four soft outward knobs with tangent transitions.
-  const knob=Math.min(width,height)*.082;
-  const baseWidth=Math.max(12,width-knob*2.05);
-  const baseHeight=Math.max(12,height-knob*2.05);
+function puzzleRaw(width,height,radius,count=640){
+  // A recognisable puzzle piece:
+  // two modest outward tabs (top/bottom) and two smooth inward sockets (left/right).
+  const minDim=Math.min(width,height);
+  const margin=Math.max(12,Number(state.margin)||24);
+
+  const tabDepth=Math.min(minDim*.070,margin*.48);
+  const socketDepth=Math.min(minDim*.050,margin*.34);
+  const halfSpan=Math.min(minDim*.155,margin*.92);
+
+  // Top and bottom tabs use the available height, so the final dimensions
+  // remain exactly width × height without an additional normalization step.
+  const baseWidth=width;
+  const baseHeight=Math.max(20,height-tabDepth*2);
   const baseRadius=Math.max(
     6,
-    Math.min((Number(radius)||0)+6,Math.min(baseWidth,baseHeight)*.14)
+    Math.min((Number(radius)||0)+5,Math.min(baseWidth,baseHeight)*.13)
   );
+
   const base=resampleClosed(
-    roundedRectRaw(baseWidth,baseHeight,baseRadius,84),
+    roundedRectRaw(baseWidth,baseHeight,baseRadius,96),
     count
   );
 
   const hw=baseWidth/2;
   const hh=baseHeight/2;
-  const sigmaX=Math.max(8,baseWidth*.15);
-  const sigmaY=Math.max(8,baseHeight*.15);
+  const sideTolerance=Math.max(1.2,minDim*.012);
   const points=[];
+
+  const softBell=(value,span)=>{
+    const q=Math.abs(value)/Math.max(.001,span);
+    if(q>=1) return 0;
+    const c=Math.cos(q*Math.PI/2);
+    return c*c;
+  };
 
   for(let i=0;i<count;i++){
     const prev=base[(i-1+count)%count];
@@ -3514,24 +3529,31 @@ function puzzleRaw(width,height,radius,count=720){
     const dx=next[0]-prev[0];
     const dy=next[1]-prev[1];
     const len=Math.hypot(dx,dy)||1;
-
-    // Outward normal for counter-clockwise contour.
     const nx=dy/len;
     const ny=-dx/len;
 
     const x=base[i][0];
     const y=base[i][1];
+    let offset=0;
 
-    const top=Math.exp(-(x*x)/(2*sigmaX*sigmaX))*Math.pow(Math.max(0,y/hh),3.0);
-    const bottom=Math.exp(-(x*x)/(2*sigmaX*sigmaX))*Math.pow(Math.max(0,-y/hh),3.0);
-    const right=Math.exp(-(y*y)/(2*sigmaY*sigmaY))*Math.pow(Math.max(0,x/hw),3.0);
-    const left=Math.exp(-(y*y)/(2*sigmaY*sigmaY))*Math.pow(Math.max(0,-x/hw),3.0);
+    // Outward top and bottom tabs.
+    if(Math.abs(y-hh)<=sideTolerance){
+      offset=tabDepth*softBell(x,halfSpan);
+    }else if(Math.abs(y+hh)<=sideTolerance){
+      offset=tabDepth*softBell(x,halfSpan);
+    }
 
-    const bulge=knob*clamp(top+bottom+left+right,0,1.02);
+    // Inward left and right sockets. The cosine-squared profile has zero
+    // slope at both ends, so the joins stay round and do not create ripples.
+    if(Math.abs(x-hw)<=sideTolerance){
+      offset=-socketDepth*softBell(y,halfSpan);
+    }else if(Math.abs(x+hw)<=sideTolerance){
+      offset=-socketDepth*softBell(y,halfSpan);
+    }
 
     points.push([
-      x + nx*bulge,
-      y + ny*bulge
+      x+nx*offset,
+      y+ny*offset
     ]);
   }
 
@@ -3570,7 +3592,7 @@ function contourForShape(shape,width,height,radius,count=160){
   }else if(shape==='liquid'){
     raw=liquidRaw(width,height,radius,Math.max(count,520));
   }else if(shape==='puzzle'){
-    count=Math.max(count,560);
+    count=Math.max(count,480);
     raw=puzzleRaw(width,height,radius,count);
   }else if(shape==='sunburst'){
     raw=sunburstRaw(width,height,radius,38,Math.max(count,560));
@@ -4213,11 +4235,14 @@ function groovyPatternField(x,y,data){
         push([o0,i1,o1],0,false);
         push([o0,i0,i1],0,false);
 
-        push([i0,it1,i1],0,false);
-        push([i0,it0,it1],0,false);
+        const smoothPuzzleWall=
+          state.shape==='puzzle' && state.surfaceMode!=='relief';
 
-        push([o0,o1,ot1],0,false);
-        push([o0,ot1,ot0],0,false);
+        push([i0,it1,i1],0,smoothPuzzleWall);
+        push([i0,it0,it1],0,smoothPuzzleWall);
+
+        push([o0,o1,ot1],0,smoothPuzzleWall);
+        push([o0,ot1,ot0],0,smoothPuzzleWall);
       }
 
       return {
