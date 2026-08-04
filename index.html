@@ -3488,40 +3488,45 @@ function appendArc(points,cx,cy,r,start,end,steps=8){
 }
 
 function puzzleRaw(width,height,radius){
-  const tab=Math.min(width,height)*.17;
-  const neck=tab*.58;
-  const bodyW=Math.max(12,width-tab*1.86);
-  const bodyH=Math.max(12,height-tab*1.86);
+  // Cleaner and more laconic puzzle silhouette:
+  // a rounded square body with four modest outward knobs.
+  const knobR=Math.min(width,height)*.095;
+  const bodyW=Math.max(12,width-knobR*2);
+  const bodyH=Math.max(12,height-knobR*2);
   const hw=bodyW/2, hh=bodyH/2;
-  const bodyR=Math.max(6,Math.min((Number(radius)||0)+6,Math.min(bodyW,bodyH)*.16));
+  const bodyR=Math.max(
+    6,
+    Math.min((Number(radius)||0)+5,Math.min(bodyW,bodyH)*.13)
+  );
+  const neck=knobR*.72;
   const pts=[];
 
-  // Top side with outward tab.
+  // Top-left corner -> top knob -> top-right corner
   pts.push([-hw+bodyR,-hh]);
   pts.push([-neck,-hh]);
-  appendArc(pts,0,-hh,tab,Math.PI,0,18);
+  appendArc(pts,0,-hh,knobR,Math.PI,0,24);
   pts.push([hw-bodyR,-hh]);
-  appendArc(pts,hw-bodyR,-hh+bodyR,bodyR,-Math.PI/2,0,10);
+  appendArc(pts,hw-bodyR,-hh+bodyR,bodyR,-Math.PI/2,0,14);
 
-  // Right side with outward tab.
+  // Right knob
   pts.push([hw,-neck]);
-  appendArc(pts,hw,0,tab,-Math.PI/2,Math.PI/2,18);
+  appendArc(pts,hw,0,knobR,-Math.PI/2,Math.PI/2,24);
   pts.push([hw,hh-bodyR]);
-  appendArc(pts,hw-bodyR,hh-bodyR,bodyR,0,Math.PI/2,10);
+  appendArc(pts,hw-bodyR,hh-bodyR,bodyR,0,Math.PI/2,14);
 
-  // Bottom side with outward tab.
+  // Bottom knob
   pts.push([neck,hh]);
-  appendArc(pts,0,hh,tab,0,Math.PI,18);
+  appendArc(pts,0,hh,knobR,0,Math.PI,24);
   pts.push([-hw+bodyR,hh]);
-  appendArc(pts,-hw+bodyR,hh-bodyR,bodyR,Math.PI/2,Math.PI,10);
+  appendArc(pts,-hw+bodyR,hh-bodyR,bodyR,Math.PI/2,Math.PI,14);
 
-  // Left side with outward tab.
+  // Left knob
   pts.push([-hw,neck]);
-  appendArc(pts,-hw,0,tab,Math.PI/2,-Math.PI/2,18);
+  appendArc(pts,-hw,0,knobR,Math.PI/2,-Math.PI/2,24);
   pts.push([-hw,-hh+bodyR]);
-  appendArc(pts,-hw+bodyR,-hh+bodyR,bodyR,Math.PI,Math.PI*1.5,10);
+  appendArc(pts,-hw+bodyR,-hh+bodyR,bodyR,Math.PI,Math.PI*1.5,14);
 
-  return normalizeContour(pts,width,height);
+  return pts;
 }
 
 function sunburstRaw(width,height,radius,spikes=38,count=560){
@@ -3557,6 +3562,7 @@ function contourForShape(shape,width,height,radius,count=160){
     raw=liquidRaw(width,height,radius,Math.max(count,520));
   }else if(shape==='puzzle'){
     raw=puzzleRaw(width,height,radius);
+    count=Math.max(count,360);
   }else if(shape==='sunburst'){
     raw=sunburstRaw(width,height,radius,38,Math.max(count,560));
   }else if(shape==='arch'){
