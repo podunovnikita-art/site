@@ -2946,6 +2946,31 @@
     }
 
 
+
+    function fixedPreviewReference(){
+      // The camera is anchored to the existing fixture plus a stable amount
+      // of free space. Changing frameMargin therefore changes the visible
+      // frame size instead of changing the camera zoom.
+      const mobile=window.matchMedia('(max-width:560px)').matches;
+      const referenceMargin=mobile ? 44 : 52;
+      return {
+        width:Number(state.innerWidth)+referenceMargin*2,
+        height:Number(state.innerHeight)+referenceMargin*2
+      };
+    }
+
+    function previewFitDimensions(outer){
+      const reference=fixedPreviewReference();
+
+      // Keep the camera completely fixed while the frame fits inside the
+      // reference area. Only near the largest possible margins do we zoom out
+      // enough to prevent actual clipping.
+      return {
+        width:Math.max(reference.width,outer.width*1.025),
+        height:Math.max(reference.height,outer.height*1.025)
+      };
+    }
+
     function previewBoxHeight(){
       const frameHeight=
         Number(state.thickness)+
@@ -3033,37 +3058,41 @@
 
       if(state.mode==='front'){
         const aspect=width/height;
-        const padding=window.matchMedia('(max-width:560px)').matches ? 1.055 : 1.085;
+        const fit=previewFitDimensions(outer);
+        const padding=window.matchMedia('(max-width:560px)').matches ? 1.02 : 1.035;
 
-        // Fit the actual outer dimensions tightly instead of scaling the whole
-        // mockup down with a large fixed empty margin.
-        const neededHalfW=outer.width*.5*padding;
-        const neededHalfH=outer.height*.5*padding;
+        // The projection is based on a fixed fixture-centred reference area.
+        // Increasing the frame width now pushes the outer edge towards the
+        // preview boundaries while the fixture remains the same apparent size.
+        const neededHalfW=fit.width*.5*padding;
+        const neededHalfH=fit.height*.5*padding;
         const halfH=Math.max(neededHalfH,neededHalfW/aspect);
         const halfW=halfH*aspect;
 
-        eye=[0,0,maxDim*4.2];
+        const projectionScale=Math.max(fit.width,fit.height,outer.width,outer.height);
+        eye=[0,0,projectionScale*4.2];
         up=[0,1,0];
         target=[0,0,centerZ*.34];
         projection=mat4Orthographic(
           -halfW,halfW,-halfH,halfH,
-          maxDim*2.8,
-          maxDim*5.4
+          projectionScale*2.8,
+          projectionScale*5.4
         );
         // Raking light to make matte relief visible from the front.
         light=[-.92,.28,.28];
       }else{
         const aspect=width/height;
         const fov=.52;
+        const fit=previewFitDimensions(outer);
         const fittedDistance=previewPerspectiveFitDistance({
-          width:outer.width,
-          height:outer.height,
+          width:fit.width,
+          height:fit.height,
           depth:maxHeight,
           yaw:view3d.yaw,
           pitch:view3d.pitch,
           aspect,
           fov,
-          padding:window.matchMedia('(max-width:560px)').matches ? 1.06 : 1.10
+          padding:window.matchMedia('(max-width:560px)').matches ? 1.015 : 1.035
         });
         const distance=fittedDistance/view3d.zoom;
         const cp=Math.cos(view3d.pitch);
@@ -3142,7 +3171,7 @@
         `<div class="price-breakdown-row"><span>${row[0]}</span><strong>${row[1]===priceDetails.base?money.format(row[1])+' ₽':'+'+money.format(row[1])+' ₽'}</strong></div>`
       ).join('');
       const opening=openingDimensions();
-      $('dimensionBadge').innerHTML=`<strong>${o.width} × ${o.height} мм</strong><br>блок без масштаба: ${state.innerWidth} × ${state.innerHeight} мм<br>отверстие: ${opening.width} × ${opening.height} мм`;
+      $('dimensionBadge').innerHTML=`<strong>${o.width} × ${o.height} мм</strong><br>размер вашего блока: ${state.innerWidth} × ${state.innerHeight} мм<br>отверстие: ${opening.width} × ${opening.height} мм`;
       applyPrintSizeStatus();
     }
 
