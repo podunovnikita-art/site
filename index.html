@@ -1363,6 +1363,103 @@
       .instruction-nav{width:100%}
     }
 
+  
+    /* v23: mobile type-choice alignment and safe sticky-preview spacing */
+    @media(max-width:560px){
+      /* The mobile header is about 60 px high. Keep a visible 12 px gap. */
+      .preview-panel{
+        top:74px!important;
+      }
+
+      #typeChoiceModal{
+        padding:12px;
+        align-items:center;
+        justify-items:center;
+      }
+      .type-choice-card{
+        position:relative;
+        width:min(100%,430px);
+        max-height:calc(100dvh - 24px);
+        margin:auto;
+        padding:18px 14px 14px;
+        border-radius:24px;
+        overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+      }
+      .type-choice-head{
+        display:block;
+        margin:0 34px 16px;
+        text-align:center;
+      }
+      .type-choice-head h3{
+        font-size:23px;
+        line-height:1.08;
+      }
+      .type-choice-head p{
+        max-width:320px;
+        margin:7px auto 0;
+        font-size:11px;
+        line-height:1.4;
+      }
+      #closeTypeChoice{
+        position:absolute;
+        top:12px;
+        right:12px;
+        z-index:2;
+      }
+      .type-choice-grid{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:10px;
+        width:100%;
+      }
+      .type-choice-option{
+        display:grid;
+        grid-template-columns:88px minmax(0,1fr);
+        grid-template-rows:auto auto;
+        column-gap:13px;
+        row-gap:3px;
+        align-items:center;
+        width:100%;
+        min-height:106px;
+        padding:9px 12px 9px 9px;
+        border-radius:18px;
+        text-align:left;
+      }
+      .type-choice-visual{
+        grid-column:1;
+        grid-row:1 / 3;
+        align-self:center;
+        justify-self:center;
+        width:88px;
+        height:88px;
+        margin:0;
+        border-radius:15px;
+      }
+      .type-choice-frame{
+        width:78px;
+        height:78px;
+        transform:scale(.72);
+        transform-origin:center;
+      }
+      .type-choice-option strong{
+        grid-column:2;
+        grid-row:1;
+        align-self:end;
+        margin:0;
+        font-size:17px;
+        line-height:1.15;
+      }
+      .type-choice-option small{
+        grid-column:2;
+        grid-row:2;
+        align-self:start;
+        margin:0;
+        font-size:11px;
+        line-height:1.35;
+      }
+    }
+
   </style>
 </head>
 <body>
