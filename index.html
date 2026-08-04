@@ -1478,6 +1478,79 @@
       }
     }
 
+  
+    /* v27: aligned desktop configurator columns */
+    @media (min-width:1181px){
+      .config-layout{
+        --desktop-panel-height:clamp(620px,calc(100vh - 150px),760px);
+        grid-template-columns:minmax(290px,330px) minmax(460px,1fr) minmax(290px,330px);
+        align-items:stretch;
+        gap:18px;
+      }
+
+      .config-layout>.panel{
+        width:100%;
+        min-width:0;
+        height:var(--desktop-panel-height);
+        min-height:0;
+        max-height:var(--desktop-panel-height);
+        box-sizing:border-box;
+        margin:0;
+        align-self:stretch;
+        position:sticky;
+        top:98px;
+      }
+
+      .controls-panel{
+        padding:20px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        scrollbar-gutter:stable;
+      }
+
+      .preview-panel{
+        min-height:0;
+        overflow:hidden;
+      }
+
+      .preview-canvas,
+      .preview-3d-canvas{
+        width:100%;
+        height:100%;
+        min-height:0;
+      }
+
+      .summary-panel{
+        padding:20px;
+        display:flex;
+        flex-direction:column;
+        overflow-y:auto;
+        overflow-x:hidden;
+        scrollbar-gutter:stable;
+      }
+
+      .summary-panel .summary-list{
+        margin-bottom:16px;
+      }
+
+      .summary-panel .price-box{
+        width:100%;
+        box-sizing:border-box;
+        margin-top:auto;
+        margin-bottom:16px;
+      }
+
+      .summary-panel #addToCart,
+      .summary-panel .prototype-tools{
+        width:100%;
+        box-sizing:border-box;
+      }
+
+      .summary-panel .prototype-tools{
+        flex:0 0 auto;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1973,7 +2046,7 @@
           </div>
           <p class="radius-review-help">
             <strong>Проверьте найденный контур.</strong>
-            Сайт ставит точки автоматически. Передвиньте их только если линия не совпала с внешним краем рамки.
+            Сайт ставит точки автоматически. При перетаскивании над пальцем появится увеличительная лупа.
           </p>
           <div class="radius-modal-actions radius-review-actions">
             <button class="secondary-btn" id="retakeRadiusPhoto">Переснять</button>
@@ -2872,6 +2945,67 @@
       webglPreview.key=key;
     }
 
+
+    function previewBoxHeight(){
+      const frameHeight=
+        Number(state.thickness)+
+        (state.surfaceMode==='relief' ? Number(state.reliefHeight) : 0);
+      const fixtureHeight=
+        Math.max(7,Math.min(12,Number(state.thickness)+2))+2.15;
+      return Math.max(frameHeight,fixtureHeight);
+    }
+
+    function previewPerspectiveFitDistance({
+      width,
+      height,
+      depth,
+      yaw,
+      pitch,
+      aspect,
+      fov,
+      padding=1.08
+    }){
+      const cp=Math.cos(pitch);
+      const direction=vec3Normalize([
+        Math.sin(yaw)*cp,
+        -Math.cos(yaw)*cp,
+        Math.sin(pitch)
+      ]);
+      const forward=[-direction[0],-direction[1],-direction[2]];
+      const worldUp=[0,0,1];
+
+      let right=vec3Normalize(vec3Cross(forward,worldUp));
+      if(Math.hypot(...right)<1e-6) right=[1,0,0];
+      const cameraUp=vec3Normalize(vec3Cross(right,forward));
+      const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+
+      const tanHalf=Math.tan(fov/2);
+      const halfW=width/2;
+      const halfH=height/2;
+      const halfD=depth/2;
+      let requiredDistance=0;
+
+      for(const x of [-halfW,halfW]){
+        for(const y of [-halfH,halfH]){
+          for(const z of [-halfD,halfD]){
+            const relative=[x,y,z];
+            const cameraX=dot(relative,right);
+            const cameraY=dot(relative,cameraUp);
+            const depthOffset=dot(relative,forward);
+
+            const verticalNeed=Math.abs(cameraY)/(tanHalf*.96);
+            const horizontalNeed=Math.abs(cameraX)/(tanHalf*Math.max(.25,aspect)*.96);
+            requiredDistance=Math.max(
+              requiredDistance,
+              Math.max(verticalNeed,horizontalNeed)-depthOffset
+            );
+          }
+        }
+      }
+
+      return Math.max(width,height,depth)*.45+requiredDistance*padding;
+    }
+
     function render3DPreview(){
       const canvas=$('preview3d');
       if(!canvas) return;
@@ -2893,22 +3027,45 @@
 
       const outer=outerDimensions();
       const maxDim=Math.max(outer.width,outer.height);
-      const maxHeight=Number(state.thickness)+(state.surfaceMode==='relief'?Number(state.reliefHeight):0);
+      const maxHeight=previewBoxHeight();
       const centerZ=maxHeight/2;
       let eye,up,target,projection,light;
 
       if(state.mode==='front'){
         const aspect=width/height;
-        const halfH=Math.max(outer.height*.74,outer.width/aspect*.74);
+        const padding=window.matchMedia('(max-width:560px)').matches ? 1.055 : 1.085;
+
+        // Fit the actual outer dimensions tightly instead of scaling the whole
+        // mockup down with a large fixed empty margin.
+        const neededHalfW=outer.width*.5*padding;
+        const neededHalfH=outer.height*.5*padding;
+        const halfH=Math.max(neededHalfH,neededHalfW/aspect);
         const halfW=halfH*aspect;
+
         eye=[0,0,maxDim*4.2];
         up=[0,1,0];
         target=[0,0,centerZ*.34];
-        projection=mat4Orthographic(-halfW,halfW,-halfH,halfH,maxDim*2.8,maxDim*5.4);
+        projection=mat4Orthographic(
+          -halfW,halfW,-halfH,halfH,
+          maxDim*2.8,
+          maxDim*5.4
+        );
         // Raking light to make matte relief visible from the front.
         light=[-.92,.28,.28];
       }else{
-        const distance=maxDim*2.10/view3d.zoom;
+        const aspect=width/height;
+        const fov=.52;
+        const fittedDistance=previewPerspectiveFitDistance({
+          width:outer.width,
+          height:outer.height,
+          depth:maxHeight,
+          yaw:view3d.yaw,
+          pitch:view3d.pitch,
+          aspect,
+          fov,
+          padding:window.matchMedia('(max-width:560px)').matches ? 1.06 : 1.10
+        });
+        const distance=fittedDistance/view3d.zoom;
         const cp=Math.cos(view3d.pitch);
         eye=[
           Math.sin(view3d.yaw)*cp*distance,
@@ -2916,8 +3073,13 @@
           Math.sin(view3d.pitch)*distance+centerZ
         ];
         up=[0,0,1];
-        target=[0,0,centerZ*.72];
-        projection=mat4Perspective(.52,width/height,maxDim*.28,maxDim*4.8);
+        target=[0,0,centerZ*.58];
+        projection=mat4Perspective(
+          fov,
+          aspect,
+          Math.max(1,maxDim*.08),
+          Math.max(maxDim*6,distance+maxDim*3)
+        );
         light=[-.86,-.18,.48];
       }
 
@@ -2980,7 +3142,7 @@
         `<div class="price-breakdown-row"><span>${row[0]}</span><strong>${row[1]===priceDetails.base?money.format(row[1])+' ₽':'+'+money.format(row[1])+' ₽'}</strong></div>`
       ).join('');
       const opening=openingDimensions();
-      $('dimensionBadge').innerHTML=`<strong>${o.width} × ${o.height} мм</strong><br>ваш блок: ${state.innerWidth} × ${state.innerHeight} мм<br>отверстие: ${opening.width} × ${opening.height} мм`;
+      $('dimensionBadge').innerHTML=`<strong>${o.width} × ${o.height} мм</strong><br>блок без масштаба: ${state.innerWidth} × ${state.innerHeight} мм<br>отверстие: ${opening.width} × ${opening.height} мм`;
       applyPrintSizeStatus();
     }
 
@@ -4364,7 +4526,8 @@ ${v(c)}
       cornerValues:[],
       measuredRadius:0,
       confidence:0,
-      frameDetectionConfidence:0
+      frameDetectionConfidence:0,
+      magnifierPoint:null
     };
 
     function setRadiusMeasureStage(name){
@@ -4492,6 +4655,8 @@ ${v(c)}
       radiusPhotoState.sourceReady=false;
       radiusPhotoState.reviewPoints=[];
       radiusPhotoState.cornerValues=[];
+      radiusPhotoState.draggingPoint=-1;
+      radiusPhotoState.magnifierPoint=null;
       radiusPhotoState.sourceCanvas.width=1;
       radiusPhotoState.sourceCanvas.height=1;
       radiusPhotoState.rectifiedCanvas.width=1;
@@ -4862,6 +5027,76 @@ ${v(c)}
       }
     }
 
+    function drawRadiusMagnifier(ctx,source,point,index){
+      if(!point) return;
+
+      const radius=Math.max(58,source.width*.09);
+      const zoom=3.4;
+      const sourceSize=(radius*2)/zoom;
+      const safeGap=radius*1.42;
+
+      let cx=point.x>source.width*.56
+        ? point.x-safeGap
+        : point.x+safeGap;
+      let cy=point.y-radius*1.55;
+
+      if(cy-radius<8) cy=point.y+radius*1.55;
+      cx=clamp(cx,radius+8,source.width-radius-8);
+      cy=clamp(cy,radius+8,source.height-radius-8);
+
+      const sx=clamp(point.x-sourceSize/2,0,source.width-sourceSize);
+      const sy=clamp(point.y-sourceSize/2,0,source.height-sourceSize);
+
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.30)';
+      ctx.shadowBlur=Math.max(10,source.width*.012);
+      ctx.beginPath();
+      ctx.arc(cx,cy,radius,0,Math.PI*2);
+      ctx.fillStyle='white';
+      ctx.fill();
+      ctx.clip();
+      ctx.shadowBlur=0;
+      ctx.drawImage(
+        source,
+        sx,sy,sourceSize,sourceSize,
+        cx-radius,cy-radius,radius*2,radius*2
+      );
+
+      ctx.lineWidth=Math.max(2,source.width/500);
+      ctx.strokeStyle='rgba(213,111,76,.98)';
+      ctx.beginPath();
+      ctx.moveTo(cx-radius*.34,cy);
+      ctx.lineTo(cx+radius*.34,cy);
+      ctx.moveTo(cx,cy-radius*.34);
+      ctx.lineTo(cx,cy+radius*.34);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx,cy,Math.max(4,source.width/260),0,Math.PI*2);
+      ctx.fillStyle='rgba(213,111,76,.98)';
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.lineWidth=Math.max(4,source.width/330);
+      ctx.strokeStyle='white';
+      ctx.beginPath();
+      ctx.arc(cx,cy,radius,0,Math.PI*2);
+      ctx.stroke();
+
+      ctx.fillStyle='#171714';
+      ctx.font=`900 ${Math.max(12,source.width/82)}px sans-serif`;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.beginPath();
+      ctx.arc(cx+radius*.72,cy-radius*.72,Math.max(13,source.width/72),0,Math.PI*2);
+      ctx.fillStyle='white';
+      ctx.fill();
+      ctx.fillStyle='#171714';
+      ctx.fillText(String(index+1),cx+radius*.72,cy-radius*.72+.5);
+      ctx.restore();
+    }
+
     function drawRadiusReview(){
       if(!radiusPhotoState.sourceReady) return;
       const source=radiusPhotoState.sourceCanvas;
@@ -4899,6 +5134,15 @@ ${v(c)}
         ctx.fillText(String(index+1),point.x,point.y+.5);
       });
       ctx.restore();
+
+      if(radiusPhotoState.draggingPoint>=0 && radiusPhotoState.magnifierPoint){
+        drawRadiusMagnifier(
+          ctx,
+          source,
+          radiusPhotoState.magnifierPoint,
+          radiusPhotoState.draggingPoint
+        );
+      }
     }
 
     function canvasPointerPosition(event,canvas){
@@ -4924,7 +5168,9 @@ ${v(c)}
       if(best>=0){
         event.preventDefault();
         radiusPhotoState.draggingPoint=best;
+        radiusPhotoState.magnifierPoint={...radiusPhotoState.reviewPoints[best]};
         canvas.setPointerCapture?.(event.pointerId);
+        drawRadiusReview();
       }
     }
 
@@ -4938,6 +5184,9 @@ ${v(c)}
         x:clamp(pos.x,margin,canvas.width-margin),
         y:clamp(pos.y,margin,canvas.height-margin)
       };
+      radiusPhotoState.magnifierPoint={
+        ...radiusPhotoState.reviewPoints[radiusPhotoState.draggingPoint]
+      };
       drawRadiusReview();
     }
 
@@ -4945,6 +5194,8 @@ ${v(c)}
       if(radiusPhotoState.draggingPoint>=0){
         event.preventDefault();
         radiusPhotoState.draggingPoint=-1;
+        radiusPhotoState.magnifierPoint=null;
+        drawRadiusReview();
       }
     }
 
@@ -5053,23 +5304,58 @@ ${v(c)}
       return values.map(value=>value/count);
     }
 
+    function perceptualChannels(rgb){
+      const r=rgb[0],g=rgb[1],b=rgb[2];
+      const luminance=.299*r+.587*g+.114*b;
+      const redGreen=r-g;
+      const blueYellow=b-(r+g)*.5;
+      return [luminance,redGreen,blueYellow];
+    }
+
     function colorDistance(a,b){
-      return Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+      const pa=perceptualChannels(a);
+      const pb=perceptualChannels(b);
+      const dL=pa[0]-pb[0];
+      const dRG=pa[1]-pb[1];
+      const dBY=pa[2]-pb[2];
+      return Math.hypot(dL*2.25,dRG*.72,dBY*.72);
     }
 
     function rayRadiusEstimate(imageData,corner,angle){
       const minDimension=Math.min(imageData.width,imageData.height);
-      const start=Math.max(1,minDimension*.002);
-      const end=minDimension*.245;
-      const window=Math.max(2,Math.round(minDimension*.004));
+      const pxPerMm=(
+        imageData.width/Math.max(1,Number(radiusPhotoState.widthMm))+
+        imageData.height/Math.max(1,Number(radiusPhotoState.heightMm))
+      )/2;
+
+      const sum=Math.cos(angle)+Math.sin(angle);
+      const factor=sum-Math.sqrt(Math.max(.0001,sum*sum-1));
+      const maxRadiusMm=Math.min(
+        28,
+        Math.min(
+          Number(radiusPhotoState.widthMm),
+          Number(radiusPhotoState.heightMm)
+        )*.42
+      );
+      const maxTransitionDistance=Math.max(
+        10,
+        maxRadiusMm*pxPerMm*factor
+      );
+
+      const start=Math.max(.5,minDimension*.001);
+      const end=Math.min(
+        minDimension*.18,
+        maxTransitionDistance+Math.max(5,minDimension*.012)
+      );
+      const window=Math.max(2,Math.round(minDimension*.0035));
       const samples=[];
 
       for(let t=start+window;t<=end-window;t+=.5){
         const before=[0,0,0],after=[0,0,0];
         let count=0;
         for(let k=1;k<=window;k++){
-          const a=averageRayColor(imageData,corner,angle,t-k,1);
-          const b=averageRayColor(imageData,corner,angle,t+k,1);
+          const a=averageRayColor(imageData,corner,angle,t-k,2);
+          const b=averageRayColor(imageData,corner,angle,t+k,2);
           for(let c=0;c<3;c++){
             before[c]+=a[c];
             after[c]+=b[c];
@@ -5083,45 +5369,101 @@ ${v(c)}
         samples.push({t,score:colorDistance(before,after)});
       }
 
-      if(samples.length<8) return {radius:0,confidence:0,peak:0};
+      if(samples.length<8){
+        return {radius:0,confidence:.25,peak:0,straight:true};
+      }
 
-      const scores=samples.map(item=>item.score).sort((a,b)=>a-b);
-      const noise=median(scores.slice(0,Math.max(4,Math.floor(scores.length*.7))))||1;
+      const sortedScores=samples.map(item=>item.score).sort((a,b)=>a-b);
+      const noiseSamples=sortedScores.slice(
+        0,
+        Math.max(6,Math.floor(sortedScores.length*.62))
+      );
+      const noise=median(noiseSamples)||.25;
+      const deviations=noiseSamples
+        .map(value=>Math.abs(value-noise))
+        .sort((a,b)=>a-b);
+      const mad=median(deviations)||.15;
 
-      // The search is limited to the corner zone, so the strongest transition
-      // here should be the outer edge of the factory frame rather than its key.
-      const best=samples.reduce(
-        (current,item)=>item.score>current.score?item:current,
-        samples[0]
+      const candidates=samples.map(item=>({
+        ...item,
+        normalized:(item.score-noise)/Math.max(.55,mad*2.8)
+      }));
+      const best=candidates.reduce(
+        (current,item)=>item.normalized>current.normalized?item:current,
+        candidates[0]
       );
 
-      const sum=Math.cos(angle)+Math.sin(angle);
-      const factor=sum-Math.sqrt(Math.max(.0001,sum*sum-1));
+      const edgeThreshold=3.0;
+      const absoluteThreshold=2.4;
+      if(best.normalized<edgeThreshold || best.score<absoluteThreshold){
+        return {
+          radius:0,
+          confidence:clamp(.55+(edgeThreshold-best.normalized)*.08,.45,.86),
+          peak:best.score,
+          straight:true
+        };
+      }
+
       let radius=best.t/Math.max(.08,factor);
+      if(radius/pxPerMm<.8){
+        return {
+          radius:0,
+          confidence:clamp(best.normalized/7,.55,.94),
+          peak:best.score,
+          straight:true
+        };
+      }
 
-      // No meaningful outer-edge contrast: treat the result as uncertain and
-      // start from a straight corner instead of inventing a repeated radius.
-      if(best.score<8) radius=0;
-
-      const prominence=best.score/(noise+4);
-      const confidence=clamp((prominence-1.5)/5.5,0,1);
-      return {radius,confidence,peak:best.score};
+      const confidence=clamp(
+        .34+(best.normalized-edgeThreshold)/7.5,
+        .28,
+        .96
+      );
+      return {radius,confidence,peak:best.score,straight:false};
     }
 
     function estimateCornerRadius(imageData,corner){
-      const angles=[35,45,55].map(value=>value*Math.PI/180);
+      const angles=[30,38,45,52,60].map(value=>value*Math.PI/180);
       const rays=angles.map(angle=>rayRadiusEstimate(imageData,corner,angle));
-      const reliable=rays.filter(ray=>ray.confidence>.15);
-      const used=reliable.length>=2?reliable:rays;
-      const radii=used.map(ray=>ray.radius);
+      const straightVotes=rays.filter(ray=>ray.straight).length;
+
+      if(straightVotes>=3){
+        const confidence=median(
+          rays.filter(ray=>ray.straight).map(ray=>ray.confidence)
+        );
+        return {
+          radius:0,
+          confidence:clamp(confidence,.5,.95),
+          residual:0,
+          straight:true
+        };
+      }
+
+      const reliable=rays.filter(ray=>!ray.straight && ray.confidence>.28);
+      if(reliable.length<2){
+        return {radius:0,confidence:.48,residual:0,straight:true};
+      }
+
+      const radii=reliable.map(ray=>ray.radius);
       const radius=median(radii);
-      const spread=Math.sqrt(radii.reduce((sum,value)=>sum+(value-radius)**2,0)/Math.max(1,radii.length));
-      const meanConfidence=used.reduce((sum,ray)=>sum+ray.confidence,0)/Math.max(1,used.length);
-      const agreement=clamp(1-spread/Math.max(3,radius*.28),0,1);
+      const spread=Math.sqrt(
+        radii.reduce((sum,value)=>sum+(value-radius)**2,0)/
+        Math.max(1,radii.length)
+      );
+      const meanConfidence=
+        reliable.reduce((sum,ray)=>sum+ray.confidence,0)/
+        Math.max(1,reliable.length);
+      const agreement=clamp(
+        1-spread/Math.max(2.5,radius*.24),
+        0,
+        1
+      );
+
       return {
         radius,
-        confidence:meanConfidence*.68+agreement*.32,
-        residual:spread
+        confidence:meanConfidence*.62+agreement*.38,
+        residual:spread,
+        straight:false
       };
     }
 
@@ -5145,11 +5487,34 @@ ${v(c)}
       const scaleX=radiusPhotoState.widthMm/imageData.width;
       const scaleY=radiusPhotoState.heightMm/imageData.height;
       const scale=(scaleX+scaleY)/2;
-      const cornerValues=estimates.map(result=>result.radius*scale);
-      const reliable=cornerValues.filter((value,index)=>estimates[index].confidence>.28 && value>=0);
-      let measured=median(reliable.length>=2?reliable:cornerValues);
+      let cornerValues=estimates.map(result=>result.radius*scale);
 
-      const maxRadius=Math.min(radiusPhotoState.widthMm,radiusPhotoState.heightMm)/2;
+      const straightCorners=estimates.filter(result=>result.straight).length;
+      const roundedReliable=cornerValues.filter(
+        (value,index)=>
+          !estimates[index].straight &&
+          estimates[index].confidence>.34 &&
+          value>=0
+      );
+
+      let measured;
+      if(straightCorners>=3){
+        measured=0;
+        cornerValues=cornerValues.map((value,index)=>
+          estimates[index].straight ? 0 : value
+        );
+      }else{
+        measured=median(
+          roundedReliable.length>=2
+            ? roundedReliable
+            : cornerValues
+        );
+      }
+
+      const maxRadius=Math.min(
+        radiusPhotoState.widthMm,
+        radiusPhotoState.heightMm
+      )/2;
       measured=clamp(Math.round(measured*2)/2,0,maxRadius);
       if(measured<1) measured=0;
 
@@ -5157,7 +5522,9 @@ ${v(c)}
         ? Math.sqrt(cornerValues.reduce((sum,value)=>sum+(value-measured)**2,0)/cornerValues.length)
         : maxRadius;
       const meanConfidence=estimates.reduce((sum,result)=>sum+result.confidence,0)/estimates.length;
-      const agreement=clamp(1-spread/Math.max(2,measured*.35),0,1);
+      const agreement=measured===0
+        ? clamp(straightCorners/4,0,1)
+        : clamp(1-spread/Math.max(2,measured*.35),0,1);
       const confidence=meanConfidence*.55+agreement*.45;
 
       radiusPhotoState.cornerValues=cornerValues;
@@ -5192,7 +5559,9 @@ ${v(c)}
       let label='Низкая уверенность';
       if(radiusPhotoState.confidence>=.78) label='Высокая уверенность';
       else if(radiusPhotoState.confidence>=.52) label='Средняя уверенность';
-      $('radiusConfidenceText').textContent=`${label}. Проверьте совпадение светлого контура с краем рамки.`;
+      $('radiusConfidenceText').textContent=value===0
+        ? `${label}. Угол распознан как прямой — красные маркеры должны попадать точно в углы.`
+        : `${label}. Проверьте совпадение светлого контура с краем рамки.`;
       $('radiusConfidenceWarning').hidden=radiusPhotoState.confidence>=.52;
 
       const names=['Верхний левый','Верхний правый','Нижний правый','Нижний левый'];
@@ -5231,14 +5600,57 @@ ${v(c)}
       ctx.drawImage(source,0,0);
 
       const value=Number($('radiusFineTune').value)||0;
-      const pxRadius=value/((radiusPhotoState.widthMm/source.width+radiusPhotoState.heightMm/source.height)/2);
+      const scale=(
+        radiusPhotoState.widthMm/source.width+
+        radiusPhotoState.heightMm/source.height
+      )/2;
+      const pxRadius=value/scale;
+      const inset=Math.max(2,source.width/300);
+      const lineWidth=Math.max(3,source.width/220);
+
       ctx.save();
-      ctx.lineWidth=Math.max(3,source.width/220);
+      ctx.lineWidth=lineWidth;
       ctx.strokeStyle='rgba(255,255,255,.98)';
-      ctx.shadowColor='rgba(0,0,0,.7)';
-      ctx.shadowBlur=Math.max(3,source.width/180);
-      drawRoundedRectOverlay(ctx,1.5,1.5,source.width-3,source.height-3,pxRadius);
-      ctx.stroke();
+      ctx.lineJoin=value===0?'miter':'round';
+      ctx.lineCap='butt';
+
+      if(value===0){
+        ctx.shadowBlur=0;
+        ctx.strokeRect(
+          inset,
+          inset,
+          source.width-inset*2,
+          source.height-inset*2
+        );
+
+        const marker=Math.max(16,source.width*.035);
+        ctx.lineWidth=Math.max(2,source.width/300);
+        ctx.strokeStyle='rgba(213,111,76,.98)';
+        [
+          [inset,inset,1,1],
+          [source.width-inset,inset,-1,1],
+          [source.width-inset,source.height-inset,-1,-1],
+          [inset,source.height-inset,1,-1]
+        ].forEach(([x,y,dx,dy])=>{
+          ctx.beginPath();
+          ctx.moveTo(x,y+dy*marker);
+          ctx.lineTo(x,y);
+          ctx.lineTo(x+dx*marker,y);
+          ctx.stroke();
+        });
+      }else{
+        ctx.shadowColor='rgba(0,0,0,.7)';
+        ctx.shadowBlur=Math.max(3,source.width/180);
+        drawRoundedRectOverlay(
+          ctx,
+          inset,
+          inset,
+          source.width-inset*2,
+          source.height-inset*2,
+          pxRadius
+        );
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
