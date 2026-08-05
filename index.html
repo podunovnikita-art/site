@@ -3878,15 +3878,77 @@ ${v(c)}
       ];
     }
 
+    function cross2(a,b){
+      return a[0]*b[1]-a[1]*b[0];
+    }
+
+    function rayContourRadius(points,angle){
+      const direction=[Math.cos(angle),Math.sin(angle)];
+      let radius=0;
+
+      for(let i=0;i<points.length;i++){
+        const a=points[i];
+        const b=points[(i+1)%points.length];
+        const segment=[b[0]-a[0],b[1]-a[1]];
+        const denominator=cross2(direction,segment);
+        if(Math.abs(denominator)<1e-10) continue;
+
+        const t=cross2(a,segment)/denominator;
+        const s=cross2(a,direction)/denominator;
+        if(t>=-1e-8 && s>=-1e-8 && s<=1+1e-8){
+          radius=Math.max(radius,t);
+        }
+      }
+      return radius;
+    }
+
+    function radialResampleContour(points,count){
+      const result=[];
+      const startAngle=Math.PI/2;
+      for(let i=0;i<count;i++){
+        const angle=startAngle+(i/count)*Math.PI*2;
+        const radius=rayContourRadius(points,angle);
+        result.push([
+          Math.cos(angle)*radius,
+          Math.sin(angle)*radius
+        ]);
+      }
+      return result;
+    }
+
+    function matchedAnnulusContours(outerSource,innerSource,count){
+      return {
+        outer:radialResampleContour(outerSource,count),
+        inner:radialResampleContour(innerSource,count)
+      };
+    }
+
     function annulusGeometryData(){
       const innerW=Number(state.innerWidth)+clearancePerSide*2;
       const innerH=Number(state.innerHeight)+clearancePerSide*2;
       const margin=Number(state.margin);
       const outerW=innerW+margin*2, outerH=innerH+margin*2;
+      const count=state.surfaceMode==='pattern'?720:360;
+
+      const outerSource=contourForShape(
+        state.shape,
+        outerW,
+        outerH,
+        Number(state.radius),
+        Math.max(count,720)
+      );
+      const innerSource=openingContour(
+        innerW,
+        innerH,
+        Number(state.innerRadius),
+        Math.max(count,480)
+      );
+      const matched=matchedAnnulusContours(outerSource,innerSource,count);
+
       return {
         innerW,innerH,margin,outerW,outerH,
-        outer:contourForShape(state.shape,outerW,outerH,Number(state.radius),state.surfaceMode==='pattern'?720:360),
-        inner:openingContour(innerW,innerH,Number(state.innerRadius),state.surfaceMode==='pattern'?720:360)
+        outer:matched.outer,
+        inner:matched.inner
       };
     }
 
@@ -4057,8 +4119,10 @@ function getGroovyPatternSeeds(){
 function groovyPatternField(x,y,data){
   const nx=x/Math.max(1,data.outerW/2);
   const ny=y/Math.max(1,data.outerH/2);
-  let field=Infinity;
   const seeds=getGroovyPatternSeeds();
+  const softness=10;
+  let exponentialSum=0;
+
   for(const seed of seeds){
     const dx=nx-seed.x;
     const dy=ny-seed.y;
@@ -4066,10 +4130,14 @@ function groovyPatternField(x,y,data){
     const rx=(dx*ca+dy*sa)/seed.sx;
     const ry=(-dx*sa+dy*ca)/seed.sy;
     const ellipse=Math.sqrt(rx*rx+ry*ry)+seed.bias;
-    field=Math.min(field,ellipse);
+    exponentialSum+=Math.exp(-softness*ellipse);
   }
-  // Slight deterministic wobble keeps the lines lively without becoming noisy.
-  field += .016*Math.sin((nx*3.2-ny*2.1)*Math.PI) + .010*Math.cos((nx*1.7+ny*2.8)*Math.PI);
+
+  // Smooth minimum instead of a hard minimum. This removes sharp pinches where
+  // two organic lines used to touch only at one edge in the exported mesh.
+  let field=-Math.log(Math.max(1e-9,exponentialSum))/softness;
+  field += .010*Math.sin((nx*2.8-ny*1.9)*Math.PI)
+    + .006*Math.cos((nx*1.5+ny*2.4)*Math.PI);
   return field;
 }
 
@@ -4104,9 +4172,21 @@ function groovyPatternField(x,y,data){
       const r=(t-edgePad)/(1-edgePad*2)*bandW;
 
       if(state.flatPattern==='checker'){
-        const cell=Math.max(7.5,Math.min(10.5,bandW/2.6));
-        const col=Math.floor(s/cell);
-        const row=Math.floor(r/cell);
+        const cols=data._checkerCols || Math.max(12,Math.round(data._midPerimeter/9));
+        const rows=data._checkerRows || Math.max(2,Math.round(bandW*.86/9));
+        const normalizedU=((u%1)+1)%1;
+        const normalizedT=clamp((t-edgePad)/(1-edgePad*2),0,1-1e-9);
+        const colPosition=normalizedU*cols;
+        const rowPosition=normalizedT*rows;
+        const col=Math.floor(colPosition);
+        const row=Math.floor(rowPosition);
+        const localU=colPosition-col;
+        const localT=rowPosition-row;
+        const gap=.075;
+
+        // A narrow base-color channel prevents diagonal squares from touching
+        // at one vertical edge, which is non-manifold in a two-part 3MF.
+        if(localU<gap || localU>1-gap || localT<gap || localT>1-gap) return 0;
         return (row+col)%2===0 ? 1 : 0;
       }
 
@@ -4193,13 +4273,23 @@ function groovyPatternField(x,y,data){
       if(state.flatPattern==='checker'){
         const cell=Math.max(7.5,Math.min(10.5,data.margin/2.6));
         const rows=Math.max(2,Math.round(usableW/cell));
-        for(let r=1;r<rows;r++){
-          tSet.add(round(edgePad + (r/rows)*(1-edgePad*2)));
+        const cols=Math.max(12,Math.round(data._midPerimeter/cell));
+        const gap=.075;
+        data._checkerRows=rows;
+        data._checkerCols=cols;
+
+        for(let r=0;r<=rows;r++){
+          const center=edgePad + (r/rows)*(1-edgePad*2);
+          const offset=(gap/rows)*(1-edgePad*2);
+          tSet.add(round(clamp(center-offset,edgePad,1-edgePad)));
+          tSet.add(round(clamp(center+offset,edgePad,1-edgePad)));
         }
 
-        const cols=Math.max(12,Math.round(data._midPerimeter/cell));
-        for(let c=1;c<cols;c++){
-          uSet.add(round(c/cols));
+        for(let c=0;c<=cols;c++){
+          const center=c/cols;
+          const offset=gap/cols;
+          uSet.add(round((center-offset+1)%1));
+          uSet.add(round((center+offset)%1));
         }
       }else if(state.flatPattern==='bands'){
         const stripe=Math.max(10,Math.min(16,data.margin*0.62));
@@ -4221,8 +4311,24 @@ function groovyPatternField(x,y,data){
         for(let c=1;c<cols;c++) uSet.add(round(c/cols));
       }
 
-      const uStops=Array.from(uSet).sort((a,b)=>a-b);
-      const tStops=Array.from(tSet).sort((a,b)=>a-b);
+      const deduplicateStops=(values)=>{
+        const sorted=Array.from(values).sort((a,b)=>a-b);
+        const result=[];
+        for(const value of sorted){
+          const normalized=Math.abs(value)<1e-9
+            ? 0
+            : Math.abs(value-1)<1e-9
+              ? 1
+              : value;
+          if(!result.length || Math.abs(normalized-result[result.length-1])>1e-7){
+            result.push(normalized);
+          }
+        }
+        return result;
+      };
+
+      const uStops=deduplicateStops(uSet);
+      const tStops=deduplicateStops(tSet);
       return {uStops,tStops,edgePad};
     }
 
@@ -4560,6 +4666,26 @@ function groovyPatternField(x,y,data){
         }
       }
 
+      // Remove any remaining diagonal-only contacts in parameter space.
+      // Two regions meeting only on one vertical edge are non-manifold and are
+      // commonly deleted by slicer repair. We sacrifice one tiny pattern cell
+      // at each such crossing so both exported parts remain proper solids.
+      for(let ti=0;ti<tCount-1;ti++){
+        for(let ui=0;ui<uCount;ui++){
+          const nextUi=(ui+1)%uCount;
+          const a=cells[ti][ui];
+          const b=cells[ti][nextUi];
+          const c=cells[ti+1][ui];
+          const d=cells[ti+1][nextUi];
+
+          if(a.material===1 && d.material===1 && b.material===0 && c.material===0){
+            d.material=0;
+          }else if(a.material===0 && d.material===0 && b.material===1 && c.material===1){
+            c.material=0;
+          }
+        }
+      }
+
       const point=(u,t,z)=>sampleAnnulusPoint(data,u,t,z);
       const addCellHorizontal=(target,cell,z,reverse=false)=>{
         const a=point(cell.u0,cell.t0,z);
@@ -4601,11 +4727,11 @@ function groovyPatternField(x,y,data){
               const leftUi=(ui-1+uCount)%uCount;
               const rightUi=(ui+1)%uCount;
 
-              if(li===0 || !layersOcc[li-1][ti][ui]) addCellHorizontal(triangles,cell,z0,true);
-              if(li===layerCount-1 || !layersOcc[li+1][ti][ui]) addCellHorizontal(triangles,cell,z1,false);
+              if(li===0 || !layersOcc[li-1][ti][ui]) addCellHorizontal(triangles,cell,z0,false);
+              if(li===layerCount-1 || !layersOcc[li+1][ti][ui]) addCellHorizontal(triangles,cell,z1,true);
 
-              if(!layersOcc[li][ti][leftUi]) addUSide(triangles,cell.u0,cell.t0,cell.t1,z0,z1,true);
-              if(!layersOcc[li][ti][rightUi]) addUSide(triangles,cell.u1,cell.t0,cell.t1,z0,z1,false);
+              if(!layersOcc[li][ti][leftUi]) addUSide(triangles,cell.u0,cell.t0,cell.t1,z0,z1,false);
+              if(!layersOcc[li][ti][rightUi]) addUSide(triangles,cell.u1,cell.t0,cell.t1,z0,z1,true);
 
               if(ti===0 || !layersOcc[li][ti-1][ui]) addTSide(triangles,cell.t0,cell.u0,cell.u1,z0,z1,true);
               if(ti===tCount-1 || !layersOcc[li][ti+1][ui]) addTSide(triangles,cell.t1,cell.u0,cell.u1,z0,z1,false);
@@ -6282,4 +6408,3 @@ function groovyPatternField(x,y,data){
   </script>
 </body>
 </html>
-
